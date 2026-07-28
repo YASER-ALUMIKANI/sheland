@@ -91,6 +91,11 @@ def get_css():
 def get_js():
     return FileResponse(os.path.join(FRONTEND_DIR, "app.js"))
 
+@app.get("/qrcode.min.js")
+def get_qrcode_js():
+    return FileResponse(os.path.join(FRONTEND_DIR, "qrcode.min.js"))
+
+
 @app.get("/manifest.json")
 def get_manifest():
     return FileResponse(os.path.join(FRONTEND_DIR, "manifest.json"))

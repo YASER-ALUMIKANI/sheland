@@ -6,6 +6,8 @@
   <title>Sheland Admin | لوحة تحكم الإدارة الشاملة</title>
 
   <link rel="stylesheet" href="styles.css">
+  <script src="qrcode.min.js"></script>
+
   <style>
     .admin-body {
       background: #F4F6F9;
@@ -595,7 +597,8 @@
             </td>
             <td style="font-size:12px; color:#666;">${new Date(o.created_at || Date.now()).toLocaleDateString('ar-EG')}</td>
             <td>
-              <button class="action-btn-sm btn-edit" onclick="printInvoice('${o.order_number}', '${o.total_amount}', '${(o.shipping_address || 'مدينة البيضاء').replace(/'/g, "")}')">🖨️ طباعة الفاتورة والملصق</button>
+              <button class="action-btn-sm" onclick="printSalesInvoice(${o.id})" style="background: #10B981; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px; margin-left: 4px;">🧾 الفاتورة</button>
+              <button class="action-btn-sm" onclick="printShippingLabel(${o.id})" style="background: #8B2C7C; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px;">🏷️ ملصق الشحن</button>
             </td>
           </tr>
         `;
@@ -622,61 +625,314 @@
       document.body.removeChild(link);
     }
 
-    function printInvoice(orderNum, total, address) {
-      const printWin = window.open('', '', 'width=700,height=800');
+    function printSalesInvoice(orderId) {
+      const order = adminOrders.find(o => o.id === orderId) || {
+        order_number: "ORD-94A21F",
+        shipping_address: "مدينة البيضاء - الشارع العام",
+        total_amount: 14900,
+        created_at: new Date().toISOString()
+      };
 
+      const orderNum = order.order_number;
+      const total = `${order.total_amount || 0} ر.ي`;
+      const fullAddr = order.shipping_address || 'مدينة البيضاء';
+      const phone = getCleanCustomerWhatsApp(order);
+      const customerName = order.customer_name || 'عميل منصة شي لاند';
 
+      const printWin = window.open('', '', 'width=800,height=900');
       printWin.document.write(`
+        <!DOCTYPE html>
         <html dir="rtl" lang="ar">
         <head>
-          <title>فاتورة شحن Sheland - ${orderNum}</title>
+          <meta charset="UTF-8">
+          <title>فاتورة مبيعات رسمية - Sheland Official Invoice - ${orderNum}</title>
           <style>
-            body { font-family: sans-serif; padding: 30px; line-height: 1.6; }
-            .invoice-box { border: 2px solid #000; padding: 20px; border-radius: 8px; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-            .barcode { font-family: monospace; font-size: 20px; font-weight: bold; background: #eee; padding: 8px 16px; border-radius: 4px; display: inline-block; margin-top: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #CCC; padding: 10px; text-align: right; }
+            @media print { body { margin: 0; padding: 0; background: #fff; } .no-print { display: none !important; } }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; dir: rtl; margin: 0; padding: 20px; background: #F8F9FA; color: #111; line-height: 1.6; }
+            .invoice-card { background: white; border: 2px solid #E2E8F0; border-radius: 12px; max-width: 800px; margin: 0 auto; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+            .header-flex { display: flex; justify-content: space-between; border-bottom: 2px solid #8B2C7C; padding-bottom: 16px; margin-bottom: 20px; }
+            .brand-logo { font-size: 26px; font-weight: 900; color: #8B2C7C; }
+            .inv-title { font-size: 20px; font-weight: 800; color: #1E1B2E; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #E2E8F0; padding: 12px; text-align: right; }
+            th { background: #F1F5F9; font-weight: 800; color: #1E1B2E; }
+            .total-row { background: #FAF5FF; font-weight: 900; font-size: 16px; color: #8B2C7C; }
+            .btn-print { background: #10B981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 15px; margin-bottom: 20px; }
           </style>
         </head>
         <body onload="window.print()">
-          <div class="invoice-box">
-            <div class="header">
+          <div style="text-align: center;" class="no-print">
+            <button onclick="window.print()" class="btn-print">🖨️ طباعة الفاتورة الرسمية (Print Invoice)</button>
+          </div>
+          <div class="invoice-card">
+            <div class="header-flex">
               <div>
-                <h1 style="margin:0; color:#8B2C7C;">Sheland Marketplace</h1>
-                <div>ملصق شحن وفاتورة مبيعات رسمية</div>
+                <div class="brand-logo">Sheland Marketplace</div>
+                <div style="font-size: 13px; color: #666;">منصة التسوق الإلكتروني الشاملة — مدينة البيضاء، اليمن</div>
               </div>
-              <div style="text-align:left;">
-                <div class="barcode">*${orderNum}*</div>
-                <div style="font-size:12px;">التاريخ: ${new Date().toLocaleDateString('ar-SA')}</div>
+              <div style="text-align: left;">
+                <div class="inv-title">فاتورة مبيعات رسمية</div>
+                <div style="font-size: 13px; color: #666;">رقم الفاتورة: <strong>${orderNum}</strong></div>
+                <div style="font-size: 12px; color: #888;">التاريخ: ${new Date().toLocaleDateString('ar-SA')}</div>
               </div>
             </div>
 
-            <h3>بيانات العميل والشحن:</h3>
-            <p><strong>العنوان المحدد:</strong> ${address}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; background: #F8FAFC; padding: 16px; border-radius: 8px;">
+              <div>
+                <h4 style="margin: 0 0 8px 0; color: #8B2C7C;">بيانات العميل:</h4>
+                <div><strong>الاسم:</strong> ${customerName}</div>
+                <div><strong>الهاتف:</strong> +${phone}</div>
+                <div><strong>عنوان الشحن:</strong> ${fullAddr}</div>
+              </div>
+              <div>
+                <h4 style="margin: 0 0 8px 0; color: #8B2C7C;">تفاصيل الدفع والشحن:</h4>
+                <div><strong>طريقة الدفع:</strong> الدفع عند الاستلام (COD)</div>
+                <div><strong>شركة الشحن:</strong> شي لاند اكسبرس (Sheland Express)</div>
+                <div><strong>حالة الطلب:</strong> ${order.status || 'مكتمل'}</div>
+              </div>
+            </div>
 
-            <h3>تفاصيل الحساب:</h3>
             <table>
               <thead>
-                <tr><th>البيان</th><th>القيمة</th></tr>
+                <tr>
+                  <th>#</th>
+                  <th>وصف المنتج / الخدمة</th>
+                  <th>الكمية</th>
+                  <th>سعر الوحدة</th>
+                  <th>المجموع الإجمالي</th>
+                </tr>
               </thead>
               <tbody>
-                <tr><td>رقم الشحنة والطلب</td><td><strong>${orderNum}</strong></td></tr>
-                <tr><td>طريقة الدفع</td><td>الدفع عند الاستلام (COD) / بطاقة</td></tr>
-                <tr><td>المبلغ الإجمالي المطلق</td><td><strong>${total} ر.ي</strong></td></tr>
+                <tr>
+                  <td>1</td>
+                  <td>مشتريات منتجات تجزئة من منصة شي لاند (طلب #${orderNum})</td>
+                  <td>1</td>
+                  <td>${total}</td>
+                  <td>${total}</td>
+                </tr>
+                <tr>
+                  <td colspan="4" style="text-align: left; font-weight: 700;">رسوم الشحن والتوصيل (مدينة البيضاء / المحافظات):</td>
+                  <td>مضمون / مجاني</td>
+                </tr>
+                <tr class="total-row">
+                  <td colspan="4" style="text-align: left;">إجمالي المبلغ النهائي المستحق:</td>
+                  <td>${total}</td>
+                </tr>
               </tbody>
             </table>
 
-            <div style="margin-top:40px; border-top:1px dashed #666; padding-top:10px; font-size:12px; text-align:center;">
-              شكراً لتسوقكم مع شي لاند - Sheland Official Shipping Label
+            <div style="margin-top: 40px; border-top: 2px dashed #E2E8F0; padding-top: 15px; text-align: center; font-size: 13px; color: #64748B;">
+              جميع الحقوق محفوظة © 2026 Sheland | تم التطوير لـ شي لاند بواسطة Y-TECHNO (واي تكنو)
             </div>
-
           </div>
         </body>
         </html>
       `);
       printWin.document.close();
     }
+
+    function printShippingLabel(orderId) {
+      const order = adminOrders.find(o => o.id === orderId) || {
+        order_number: "ORD-94A21F",
+        shipping_address: "مدينة البيضاء - الشارع العام",
+        total_amount: 14900,
+        created_at: new Date().toISOString()
+      };
+
+      const orderNum = order.order_number;
+      const total = `${order.total_amount || 0} ر.ي`;
+      const fullAddr = order.shipping_address || 'مدينة البيضاء';
+      const phone = getCleanCustomerWhatsApp(order);
+      const customerName = order.customer_name || 'عميل منصة شي لاند';
+      const shippingDate = new Date(order.created_at || Date.now()).toLocaleDateString('ar-EG');
+
+      let cityName = "مدينة البيضاء";
+      if (fullAddr.includes("صنعاء")) cityName = "صنعاء";
+      else if (fullAddr.includes("عدن")) cityName = "عدن";
+      else if (fullAddr.includes("تعز")) cityName = "تعز";
+      else if (fullAddr.includes("إب")) cityName = "إب";
+      else if (fullAddr.includes("ذمار")) cityName = "ذمار";
+      else if (fullAddr.includes("حضرموت")) cityName = "حضرموت";
+      else if (fullAddr.includes("مأرب")) cityName = "مأرب";
+
+      const qrTextPayload = `=== ملصق شحن SHELAND SHIPPING LABEL ===
+رقم التتبع / الطلب: ${orderNum}
+شركة الشحن: شي لاند اكسبرس (Sheland Express)
+نوع الخدمة: شحن سريع / عادي (COD)
+تاريخ الشحن: ${shippingDate}
+
+--- بيانات المرسل (FROM) ---
+الاسم/الشركة: متجر شي لاند (Sheland Official)
+العنوان: الشارع العام - الحي التجاري، مدينة البيضاء، اليمن (967)
+الهاتف: +967 770000000 / 07-39225378
+البريد الإلكتروني: support@sheland.com
+
+--- بيانات المستلم (SHIP TO) ---
+اسم المستلم: ${customerName}
+العنوان التفصيلي: ${fullAddr}
+المدينة/المنطقة: ${cityName}، اليمن
+الهاتف: +${phone}
+
+--- معلومات الطرد (PARCEL DETAILS) ---
+عدد الطرود: 1 من 1
+الوزن: 0.85 كجم
+الأبعاد: 25 × 15 × 10 سم
+محتويات الطرد: منتجات مبيعات تجزئة منصة شي لاند
+القيمة المصرح بها: ${total}
+بلد المنشأ: اليمن
+تعليمات التسليم: التواصل قبل التسليم | التسليم للمستلم فقط | قابل للكسر / يحفظ جافًا`.trim();
+
+      const qrSvgTag = (typeof QRCodeLib !== 'undefined') ? QRCodeLib.generateSVG(qrTextPayload, 4) : `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrTextPayload)}" style="width:160px;height:160px;">`;
+
+      const printWin = window.open('', '', 'width=850,height=900');
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <title>ملصق شحن — SHIPPING LABEL - ${orderNum}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; background: #fff; }
+              .no-print { display: none !important; }
+            }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; dir: rtl; margin: 0; padding: 20px; background: #F8F9FA; color: #111; line-height: 1.5; }
+            .shipping-label-card { background: white; border: 3px solid #1E1B2E; border-radius: 12px; max-width: 750px; margin: 0 auto; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+            .label-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px double #1E1B2E; padding-bottom: 12px; margin-bottom: 16px; }
+            .label-title { font-size: 22px; font-weight: 900; color: #8B2C7C; margin: 0; }
+            .badge-label { background: #1E1B2E; color: white; padding: 6px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; letter-spacing: 1px; }
+            
+            .meta-box { background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 12px; }
+            .meta-item { display: flex; flex-direction: column; }
+            .meta-label { font-weight: 700; color: #64748B; margin-bottom: 2px; }
+            .meta-val { font-weight: 900; color: #0F172A; font-size: 13px; }
+
+            .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+            .party-card { background: #FAF5FF; border: 1.5px solid #E9D5FF; border-radius: 8px; padding: 14px; }
+            .party-card.to-card { background: #F0FDF4; border-color: #BBF7D0; }
+            .party-title { margin: 0 0 10px 0; font-size: 15px; font-weight: 900; color: #8B2C7C; border-bottom: 2px solid #E9D5FF; padding-bottom: 4px; }
+            .to-card .party-title { color: #166534; border-bottom-color: #BBF7D0; }
+
+            .field-row { display: flex; margin-bottom: 6px; font-size: 13px; }
+            .field-key { font-weight: 700; width: 110px; color: #475569; flex-shrink: 0; }
+            .field-value { font-weight: 800; color: #0F172A; flex-grow: 1; word-break: break-word; }
+
+            .section-block { background: #FFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+            .section-title { font-size: 14px; font-weight: 900; color: #1E1B2E; margin: 0 0 10px 0; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; }
+
+            .barcode-section { text-align: center; background: #FFF; border: 2px dashed #1E1B2E; border-radius: 10px; padding: 20px; margin-top: 20px; }
+            .tracking-code { font-family: 'Courier New', monospace; font-size: 26px; font-weight: 900; letter-spacing: 4px; color: #1E1B2E; margin: 8px 0; }
+            .barcode-box { background: #000; color: #FFF; font-family: monospace; font-size: 28px; letter-spacing: 6px; font-weight: 900; padding: 10px 24px; display: inline-block; border-radius: 6px; margin: 10px 0; }
+
+            .btn-print { background: #8B2C7C; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 15px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body onload="window.print()">
+          <div style="text-align: center;" class="no-print">
+            <button onclick="window.print()" class="btn-print">🖨️ طباعة ملصق الشحن (Shipping Label)</button>
+          </div>
+          <div class="shipping-label-card">
+            <div class="label-header">
+              <h1 class="label-title">Sheland Marketplace</h1>
+              <span class="badge-label">ملصق شحن — SHIPPING LABEL</span>
+            </div>
+
+            <div class="meta-box">
+              <div class="meta-item">
+                <span class="meta-label">شركة الشحن:</span>
+                <span class="meta-val">شي لاند اكسبرس (Sheland Express)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">رقم التتبع:</span>
+                <span class="meta-val">${orderNum}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">نوع الخدمة:</span>
+                <span class="meta-val">سريع / عادي (COD)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">تاريخ الشحن:</span>
+                <span class="meta-val">${shippingDate}</span>
+              </div>
+            </div>
+
+            <div class="grid-2col">
+              <!-- المرسل FROM -->
+              <div class="party-card">
+                <h3 class="party-title">المرسل — FROM</h3>
+                <div class="field-row"><span class="field-key">الاسم/الشركة:</span><span class="field-value">متجر شي لاند (Sheland Official)</span></div>
+                <div class="field-row"><span class="field-key">العنوان:</span><span class="field-value">الشارع العام - الحي التجاري</span></div>
+                <div class="field-row"><span class="field-key">المدينة/المنطقة:</span><span class="field-value">مدينة البيضاء</span></div>
+                <div class="field-row"><span class="field-key">الدولة:</span><span class="field-value">اليمن (Yemen)</span></div>
+                <div class="field-row"><span class="field-key">الرمز البريدي:</span><span class="field-value">967</span></div>
+                <div class="field-row"><span class="field-key">الهاتف:</span><span class="field-value">+967 770000000 / 07-39225378</span></div>
+                <div class="field-row"><span class="field-key">البريد الإلكتروني:</span><span class="field-value">support@sheland.com</span></div>
+              </div>
+
+              <!-- المستلم SHIP TO -->
+              <div class="party-card to-card">
+                <h3 class="party-title">المستلم — SHIP TO</h3>
+                <div class="field-row"><span class="field-key">اسم المستلم:</span><span class="field-value">${customerName}</span></div>
+                <div class="field-row"><span class="field-key">اسم الشركة:</span><span class="field-value">— (شخصي)</span></div>
+                <div class="field-row"><span class="field-key">العنوان:</span><span class="field-value">${fullAddr}</span></div>
+                <div class="field-row"><span class="field-key">المدينة/المنطقة:</span><span class="field-value">${cityName}</span></div>
+                <div class="field-row"><span class="field-key">الدولة:</span><span class="field-value">اليمن (Yemen)</span></div>
+                <div class="field-row"><span class="field-key">الرمز البريدي:</span><span class="field-value">967</span></div>
+                <div class="field-row"><span class="field-key">الهاتف:</span><span class="field-value">+${phone}</span></div>
+              </div>
+            </div>
+
+            <!-- معلومات الطرد -->
+            <div class="section-block">
+              <h3 class="section-title">معلومات الطرد — PARCEL DETAILS</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="field-row"><span class="field-key">رقم الطلب:</span><span class="field-value">${orderNum}</span></div>
+                <div class="field-row"><span class="field-key">عدد الطرود:</span><span class="field-value">1 من 1</span></div>
+                <div class="field-row"><span class="field-key">الوزن:</span><span class="field-value">0.85 كجم</span></div>
+                <div class="field-row"><span class="field-key">الأبعاد:</span><span class="field-value">25 × 15 × 10 سم</span></div>
+                <div class="field-row"><span class="field-key">محتويات الطرد:</span><span class="field-value">منتجات مبيعات من منصة شي لاند</span></div>
+                <div class="field-row"><span class="field-key">القيمة المصرح بها:</span><span class="field-value">${total}</span></div>
+                <div class="field-row"><span class="field-key">بلد المنشأ:</span><span class="field-value">اليمن</span></div>
+              </div>
+              <div style="margin-top: 10px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px; font-size: 12px;">
+                <strong>تعليمات التسليم:</strong><br>
+                📞 التواصل قبل التسليم | 👤 التسليم للمستلم فقط | ⚠️ قابل للكسر / يحفظ جافًا
+              </div>
+            </div>
+
+            <!-- رقم التتبع والباركود ورمز QR الشامل أوفلاين -->
+            <div class="barcode-section">
+              <div style="font-size: 14px; font-weight: 900; color: #1E1B2E; margin-bottom: 4px;">رقم التتبع بخط واضح:</div>
+              <div class="tracking-code">${orderNum}</div>
+
+              <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-top: 15px; flex-wrap: wrap;">
+                <!-- الباركود الخطي -->
+                <div style="text-align: center;">
+                  <div style="font-size: 11px; font-weight: 700; color: #64748B; margin-bottom: 4px;">الباركود الخطي (Barcode)</div>
+                  <div class="barcode-box">*${orderNum}*</div>
+                </div>
+
+                <!-- رمز QR الشامل المحلي أوفلاين -->
+                <div style="text-align: center; background: #FAF5FF; border: 1.5px solid #8B2C7C; padding: 12px 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; font-weight: 900; color: #8B2C7C; margin-bottom: 6px;">📱 رمز QR محلي (Offline 100%) يحوي كامل البيانات</div>
+                  <div style="width: 160px; height: 160px; border: 2px solid #1E1B2E; border-radius: 6px; padding: 4px; background: #FFF; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                    ${qrSvgTag}
+                  </div>
+                  <div style="font-size: 10px; font-weight: 700; color: #475569; margin-top: 4px;">امسح بالكاميرا لاستعراض بيانات الملصق كاملة أوفلاين</div>
+                </div>
+              </div>
+
+              <div style="font-size: 11px; color: #94A3B8; margin-top: 12px;">[ ــــــــــــــــــــــــــــــــــــــــــــــــ ]</div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+    }
+
+
+
 
 
     function filterAdminProducts(q) {
