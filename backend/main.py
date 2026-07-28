@@ -5,6 +5,7 @@ Sheland Backend - FastAPI Main Application
 
 import uuid
 import os
+import shutil
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -482,7 +483,7 @@ async def upload_image_file(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    return {"url": f"uploads/{filename}"}
+    return {"url": f"/uploads/{filename}"}
 
 # --- Database Seeder ---
 @app.get("/api/seed")
