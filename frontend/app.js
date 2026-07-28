@@ -988,34 +988,120 @@ async function handleVendorAddProduct(e) {
   showToast("🎉 تم نشر منتجك بنجاح على منصة Sheland!", 'success');
 }
 
-// Customer Account & History Drawer Functions (Item 14)
-function openAccountModal() {
-  const modal = document.getElementById('accountModal');
-  const container = document.getElementById('customerAccountOrdersList');
-  if (!modal || !container) return;
+// Customer Account & Profile Settings Functions (Item 14)
+function switchAccountSubTab(subTab) {
+  const ordersDiv = document.getElementById('accSubTabOrders');
+  const profileDiv = document.getElementById('accSubTabProfile');
+  const btnOrders = document.getElementById('tabBtnAccountOrders');
+  const btnProfile = document.getElementById('tabBtnAccountProfile');
 
-  const ordersHistory = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
-  if (ordersHistory.length === 0) {
+  if (subTab === 'orders') {
+    if (ordersDiv) ordersDiv.style.display = 'block';
+    if (profileDiv) profileDiv.style.display = 'none';
+    if (btnOrders) { btnOrders.style.background = 'var(--primary)'; btnOrders.style.color = 'white'; btnOrders.style.border = 'none'; }
+    if (btnProfile) { btnProfile.style.background = 'var(--surface)'; btnProfile.style.color = 'var(--text)'; btnProfile.style.border = '1px solid var(--border)'; }
+  } else {
+    if (ordersDiv) ordersDiv.style.display = 'none';
+    if (profileDiv) profileDiv.style.display = 'block';
+    if (btnProfile) { btnProfile.style.background = 'var(--primary)'; btnProfile.style.color = 'white'; btnProfile.style.border = 'none'; }
+    if (btnOrders) { btnOrders.style.background = 'var(--surface)'; btnOrders.style.color = 'var(--text)'; btnOrders.style.border = '1px solid var(--border)'; }
+  }
+}
+
+function saveCustomerProfileSettings(e) {
+  if (e) e.preventDefault();
+  const name = document.getElementById('accCustName').value.trim();
+  const phone = document.getElementById('accCustPhone').value.trim();
+  const address = document.getElementById('accCustAddress').value.trim();
+
+  if (!name || !phone) {
+    showToast("يرجى إدخال الاسم ورقم الجوال للاعتماد", 'danger', '⚠️');
+    return;
+  }
+
+  localStorage.setItem('sheland_user_name', name);
+  localStorage.setItem('sheland_user_phone', phone);
+  localStorage.setItem('sheland_user_address', address);
+
+  if (document.getElementById('accCurrentPhoneDisplay')) {
+    document.getElementById('accCurrentPhoneDisplay').innerText = phone;
+  }
+  showToast("تم حفظ بيانات الحساب وتأكيد رقم الجوال بنجاح!", 'success', '👤');
+  
+  // Refresh order history by phone from API
+  fetchAccountOrdersByPhone();
+  switchAccountSubTab('orders');
+}
+
+async function fetchAccountOrdersByPhone() {
+  const phone = localStorage.getItem('sheland_user_phone') || '';
+  const container = document.getElementById('customerAccountOrdersList');
+  if (!container) return;
+
+  if (document.getElementById('accCurrentPhoneDisplay')) {
+    document.getElementById('accCurrentPhoneDisplay').innerText = phone || 'غير محدد (ادخل بياناتك من تبويب البيانات)';
+  }
+
+  const localOrders = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
+  let apiOrders = [];
+
+  if (phone) {
+    try {
+      const res = await fetch(`${API_BASE}/orders?phone=${encodeURIComponent(phone)}`);
+      if (res.ok) {
+        apiOrders = await res.json();
+      }
+    } catch (err) {
+      console.log("Could not fetch remote orders by phone", err);
+    }
+  }
+
+  // Combine & deduplicate API and local orders
+  const map = new Map();
+  localOrders.forEach(o => map.set(o.number, { number: o.number, date: o.date, status: o.status || 'قيد المعالجة', total: o.total }));
+  apiOrders.forEach(o => map.set(o.order_number, { number: o.order_number, date: o.created_at || new Date().toISOString(), status: o.status || 'قيد المعالجة', total: o.total_amount }));
+
+  const combinedOrders = Array.from(map.values());
+
+  if (combinedOrders.length === 0) {
     container.innerHTML = `
-      <div style="text-align:center; padding: 20px; color:#888; font-size:13px;">
-        <div style="font-size:30px; margin-bottom:6px;">📦</div>
-        لم يتم تسجيل أي طلبات سابقة على هذا الجهاز حتى الآن.
+      <div style="text-align:center; padding: 25px; color:#888; font-size:13px; background: white; border-radius: 8px; border: 1px solid var(--border);">
+        <div style="font-size:32px; margin-bottom:6px;">📦</div>
+        ${phone ? `لا توجد طلبات مسجلة برقم الجوال (<b>${escapeHTML(phone)}</b>) حتى الآن.` : 'لم يتم تسجيل رقم جوال بعد. اضغط على تبويب "بياناتي ورقم الجوال" لحفظ حسابك.'}
       </div>
     `;
   } else {
-    container.innerHTML = ordersHistory.map(o => `
+    container.innerHTML = combinedOrders.map(o => `
       <div style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: white;">
         <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 13px;">
-          <span>رقم الطلب: ${escapeHTML(o.number)}</span>
-          <span style="color: var(--success); background: #E8F5E9; padding: 2px 8px; border-radius: 4px;">${escapeHTML(o.status || 'قيد المعالجة')}</span>
+          <span>رقم الطلب: <b>${escapeHTML(o.number)}</b></span>
+          <span style="color: var(--success); background: #E8F5E9; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${escapeHTML(o.status || 'قيد المعالجة')}</span>
         </div>
         <div style="font-size: 12px; color: #666; margin-top: 4px;">التاريخ: ${new Date(o.date).toLocaleDateString('ar-EG')} | الإجمالي: <b>${formatPrice(o.total)}</b></div>
-        <button onclick="closeAccountModal(); document.getElementById('trackOrderNumInput').value='${o.number}'; openTrackModal(); executeTrackOrder();" style="margin-top: 8px; background: var(--accent); color: var(--primary-dark); border: none; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; cursor: pointer;">
-          📍 تتبع حالة هذا الطلب
-        </button>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button onclick="closeAccountModal(); document.getElementById('trackOrderNumInput').value='${o.number}'; openTrackModal(); executeTrackOrder();" style="background: var(--accent); color: var(--primary-dark); border: none; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 4px; cursor: pointer;">
+            📍 تتبع الشحنة
+          </button>
+        </div>
       </div>
     `).join('');
   }
+}
+
+function openAccountModal() {
+  const modal = document.getElementById('accountModal');
+  if (!modal) return;
+
+  const savedName = localStorage.getItem('sheland_user_name') || '';
+  const savedPhone = localStorage.getItem('sheland_user_phone') || '';
+  const savedAddress = localStorage.getItem('sheland_user_address') || '';
+
+  if (document.getElementById('accCustName')) document.getElementById('accCustName').value = savedName;
+  if (document.getElementById('accCustPhone')) document.getElementById('accCustPhone').value = savedPhone;
+  if (document.getElementById('accCustAddress')) document.getElementById('accCustAddress').value = savedAddress;
+
+  switchAccountSubTab('orders');
+  fetchAccountOrdersByPhone();
 
   modal.classList.add('active');
 }

@@ -270,8 +270,16 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 
 # --- Orders Endpoints ---
 @app.get("/api/orders", response_model=List[schemas.OrderResponse])
-def get_orders(db: Session = Depends(get_db)):
-    return db.query(models.Order).order_by(models.Order.id.desc()).all()
+def get_orders(phone: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.Order)
+    if phone:
+        clean_phone = phone.strip().replace('+', '')
+        query = query.filter(
+            (models.Order.phone.like(f"%{clean_phone}%")) |
+            (models.Order.shipping_address.like(f"%{clean_phone}%"))
+        )
+    return query.order_by(models.Order.id.desc()).all()
+
 
 @app.put("/api/orders/{order_id}/status")
 def update_order_status(order_id: int, status: str = Query(...), db: Session = Depends(get_db)):
