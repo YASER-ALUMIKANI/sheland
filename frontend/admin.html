@@ -524,7 +524,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 12px;">
           <div>
             <label style="font-weight: 700; font-size: 13px;">التصنيف *:</label>
             <select id="pCategory" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
@@ -538,14 +538,17 @@
             </select>
           </div>
           <div>
-            <label style="font-weight: 700; font-size: 13px;">السعر الحالي (ر.ي) *:</label>
+            <label style="font-weight: 700; font-size: 13px;">سعر البيع (ر.ي) *:</label>
             <input type="number" step="0.5" id="pPrice" required placeholder="49.00" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="font-weight: 700; font-size: 13px; color: var(--primary-dark);">سعر التكلفة (ر.ي) *:</label>
+            <input type="number" step="0.5" id="pCostPrice" required placeholder="30.00" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
           </div>
           <div>
             <label style="font-weight: 700; font-size: 13px;">السعر السابق (ر.ي):</label>
             <input type="number" step="0.5" id="pComparePrice" placeholder="89.00" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
           </div>
-
           <div>
             <label style="font-weight: 700; font-size: 13px;">المخزون / الكمية *:</label>
             <input type="number" id="pStock" required min="0" placeholder="15" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
@@ -553,9 +556,13 @@
         </div>
 
 
-        <div style="margin-bottom: 12px;">
-          <label style="font-weight: 700; font-size: 13px;">رابط صورة المنتج (Image URL) *:</label>
-          <input type="url" id="pImgUrl" required placeholder="https://images.unsplash.com/photo-..." oninput="updateImagePreview(this.value)" style="width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px;">
+        <div style="margin-bottom: 14px; background: #FAF8FA; padding: 12px; border-radius: 8px; border: 1px dashed var(--accent);">
+          <label style="font-weight: 800; font-size: 13px; color: var(--primary-dark); display: block; margin-bottom: 6px;">🖼️ صورة المنتج (رفع من الجهاز 📁 أو إضافة رابط URL):</label>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+            <input type="file" id="pImageFile" accept="image/*" onchange="handleProductImageUpload(event)" style="flex: 1; padding: 8px; border: 1px solid #CCC; border-radius: 6px; font-size: 12px; background: white;">
+            <span style="font-size: 12px; font-weight: 800; color: #777;">أو</span>
+            <input type="url" id="pImgUrl" required placeholder="رابط صورة مباشر https://..." oninput="updateImagePreview(this.value)" style="flex: 2; padding: 9px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+          </div>
           <div class="img-preview-box" id="imgPreviewBox">
             <span style="font-size: 11px; color: #888;">معاينة الصورة</span>
           </div>
@@ -1263,15 +1270,41 @@
       }
     }
 
+    async function handleProductImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('pImgUrl').value = data.url;
+          updateImagePreview(data.url);
+        } else {
+          alert('تعذر رفع الصورة، تحقق من صورة الجهاز والمحاولة مرة أخرى.');
+        }
+      } catch (err) {
+        console.log('Error uploading image:', err);
+      }
+    }
+
     function openAddProductModal() {
       document.getElementById('editProdId').value = '';
       document.getElementById('modalFormTitle').innerText = "➕ إضافة منتج جديد للكتالوج";
       document.getElementById('pTitleAr').value = '';
       document.getElementById('pTitleEn').value = '';
       document.getElementById('pPrice').value = '';
+      document.getElementById('pCostPrice').value = '';
       document.getElementById('pComparePrice').value = '';
       document.getElementById('pStock').value = '15';
       document.getElementById('pImgUrl').value = '';
+      if (document.getElementById('pImageFile')) document.getElementById('pImageFile').value = '';
       document.getElementById('imgPreviewBox').innerHTML = '<span style="font-size: 11px; color: #888;">معاينة الصورة</span>';
       document.getElementById('adminProdModal').classList.add('active');
     }
@@ -1286,9 +1319,11 @@
       document.getElementById('pTitleEn').value = p.title_en || p.title_ar;
       document.getElementById('pCategory').value = p.category_id;
       document.getElementById('pPrice').value = p.price;
+      document.getElementById('pCostPrice').value = (p.cost_price != null && p.cost_price > 0) ? p.cost_price : Math.round(p.price * 0.6);
       document.getElementById('pComparePrice').value = p.compare_at_price || '';
       document.getElementById('pStock').value = p.stock || 0;
       document.getElementById('pImgUrl').value = p.image_url;
+      if (document.getElementById('pImageFile')) document.getElementById('pImageFile').value = '';
       updateImagePreview(p.image_url);
 
       document.getElementById('adminProdModal').classList.add('active');
@@ -1300,8 +1335,8 @@
 
     function updateImagePreview(url) {
       const box = document.getElementById('imgPreviewBox');
-      if (url && url.startsWith('http')) {
-        box.innerHTML = `<img src="${url}" alt="Preview">`;
+      if (url) {
+        box.innerHTML = `<img src="${url}" alt="Preview" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\\'font-size: 11px; color: #888;\\'>معاينة الصورة</span>';">`;
       } else {
         box.innerHTML = `<span style="font-size: 11px; color: #888;">معاينة الصورة</span>`;
       }
@@ -1314,6 +1349,7 @@
       const titleEn = document.getElementById('pTitleEn').value.trim();
       const catId = parseInt(document.getElementById('pCategory').value);
       const price = parseFloat(document.getElementById('pPrice').value);
+      const costPrice = parseFloat(document.getElementById('pCostPrice').value) || Math.round(price * 0.6);
       const comparePrice = parseFloat(document.getElementById('pComparePrice').value) || null;
       const stockVal = parseInt(document.getElementById('pStock').value) || 0;
       const imgUrl = document.getElementById('pImgUrl').value.trim();
@@ -1327,6 +1363,7 @@
         category_id: catId,
         seller_id: 1,
         price: price,
+        cost_price: costPrice,
         compare_at_price: comparePrice,
         stock: stockVal,
         image_url: imgUrl,

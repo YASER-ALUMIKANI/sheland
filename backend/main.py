@@ -6,7 +6,7 @@ Sheland Backend - FastAPI Main Application
 import uuid
 import os
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -196,6 +196,7 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
         description=product_in.description,
         price=product_in.price,
         compare_at_price=product_in.compare_at_price,
+        cost_price=product_in.cost_price if product_in.cost_price is not None else round(product_in.price * 0.6),
         currency=product_in.currency,
         image_url=product_in.image_url,
         free_shipping=product_in.free_shipping,
@@ -240,6 +241,8 @@ def update_product(product_id: int, product_in: schemas.ProductCreate, db: Sessi
     db_product.title_en = product_in.title_en
     db_product.category_id = product_in.category_id
     db_product.price = product_in.price
+    if product_in.cost_price is not None:
+        db_product.cost_price = product_in.cost_price
     db_product.compare_at_price = product_in.compare_at_price
     db_product.image_url = product_in.image_url
     db_product.description = product_in.description
@@ -461,6 +464,22 @@ def validate_coupon(code: str = Query(...), total: float = Query(...), db: Sessi
         "discount_amount": discount
     }
 
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+@app.post("/api/upload")
+async def upload_image_file(file: UploadFile = File(...)):
+    # ponytail: Save uploaded image file directly into frontend/uploads
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else '.jpg'
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+        ext = '.jpg'
+    filename = f"prod_{uuid.uuid4().hex[:10]}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"url": f"uploads/{filename}"}
 
 # --- Database Seeder ---
 @app.get("/api/seed")
