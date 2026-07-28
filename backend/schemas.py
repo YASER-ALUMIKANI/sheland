@@ -1,0 +1,123 @@
+"""
+CityLand Backend - Pydantic Validation Schemas
+# ponytail: Strict validation using standard Pydantic models for safety
+"""
+from typing import List, Optional
+from pydantic import BaseModel, Field
+from datetime import datetime
+
+class CategoryBase(BaseModel):
+    name_ar: str
+    name_en: str
+    slug: str
+    icon: Optional[str] = None
+    image_url: Optional[str] = None
+    parent_id: Optional[int] = None
+
+class CategoryResponse(CategoryBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+class VariantBase(BaseModel):
+    sku: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
+    stock: int = Field(default=10, ge=0)
+    price_override: Optional[float] = None
+
+class VariantResponse(VariantBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+class ProductBase(BaseModel):
+    title_ar: str = Field(..., min_length=2, max_length=200)
+    title_en: str = Field(..., min_length=2, max_length=200)
+    slug: str
+    description: Optional[str] = None
+    price: float = Field(..., gt=0)
+    compare_at_price: Optional[float] = None
+    currency: str = "YER"
+    image_url: str
+    category_id: int
+
+    seller_id: int = 1
+    stock: Optional[int] = 10
+    free_shipping: bool = True
+    cod_available: bool = True
+
+
+class ProductCreate(ProductBase):
+    variants: Optional[List[VariantBase]] = []
+
+class ProductResponse(ProductBase):
+    id: int
+    rating: float
+    review_count: int
+    is_featured: bool
+    variants: List[VariantResponse] = []
+
+    class Config:
+        from_attributes = True
+
+class CartItemCreate(BaseModel):
+    user_id: int = 1
+    product_id: int
+    variant_id: Optional[int] = None
+    quantity: int = Field(default=1, ge=1)
+
+class OrderCreate(BaseModel):
+    user_id: Optional[int] = None
+    customer_name: Optional[str] = "عميل شي لاند"
+    phone: Optional[str] = None
+    shipping_address: str
+    payment_method: str = "COD"
+    items: List[CartItemCreate]
+
+class OrderResponse(BaseModel):
+    id: int
+    order_number: str
+    user_id: Optional[int] = None
+    customer_name: Optional[str] = None
+    phone: Optional[str] = None
+    shipping_address: str
+    payment_method: str
+    status: str
+    total_amount: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ReviewCreate(BaseModel):
+    author_name: Optional[str] = "عميل شي لاند"
+
+    rating: int = Field(..., ge=1, le=5)
+    comment: str = Field(..., min_length=2)
+
+class ReviewResponse(BaseModel):
+    id: int
+    author_name: str
+    rating: int
+    comment: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str = "percent"
+    discount_value: float
+    min_order_amount: float = 0.0
+
+class CouponResponse(CouponCreate):
+    id: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+

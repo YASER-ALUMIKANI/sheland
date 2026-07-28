@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sheland | سوق شي لاند الإلكتروني الشامل في البيضاء واليمن</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#8B2C7C">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+  <meta name="description" content="تسوّق أفضل المنتجات بأسعار منخفضة جداً من الأزياء، ملابس الأطفال، أدوات المنزل والمطبخ، الجمال والإلكترونيات مع شحن مجاني ودفع عند الاستلام.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      <span>🚚 الشحن والتوصيل مباشر إلى <b>مدينة البيضاء</b> وكافة المحافظات اليمنية | 📦 الدفع عند الاستلام متوفر</span>
+      <div class="top-bar-links">
+        <button onclick="toggleDarkTheme()" id="themeToggleBtn" style="background: none; border: none; color: var(--accent-gold); font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit;">🌙 الوضع الليلي</button>
+        <select id="currencySelect" onchange="setCurrency(this.value)" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 12px; cursor: pointer;">
+          <option value="YER" style="color: black;">🇾🇪 YER (الريال اليمني)</option>
+          <option value="SAR" style="color: black;">🇸🇦 SAR (الريال السعودي)</option>
+          <option value="USD" style="color: black;">🇺🇸 USD ($ دولار أمريكي)</option>
+        </select>
+        <a href="#trackModal" onclick="openTrackModal()">📦 تتبع طلبك</a>
+        <a href="/vendor" target="_blank" style="color: var(--accent-gold); font-weight: 700;">🛍️ بوابة البائعين</a>
+        <a href="/admin">⚙️ لوحة الأدمن</a>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Floating WhatsApp Quick Contact Button -->
+  <a href="https://wa.me/967770000000?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D9%85%D9%86%D8%B5%D8%A9%20%D8%B4%D9%8A%20%D9%84%D8%A7%D9%86%D8%AF%D8%8C%20%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%85%D9%86%D8%AA%D8%AC%D8%A7%D8%AA%D9%83%D9%85%20%D9%81%D9%8A%20%D9%85%D8%AF%D9%8A%D9%86%D8%A9%20%D8%A7%D9%84%D8%A8%D9%8A%D8%B6%D8%A7%D8%A1" target="_blank" class="whatsapp-float-btn" title="تواصل مباشر عبر الواتساب">
+    💬
+  </a>
+
+
+  <!-- Header Sticky Area -->
+  <header class="header-sticky">
+    <div class="main-header">
+      <div class="container header-flex">
+        <!-- Logo -->
+        <a href="#" class="logo" onclick="resetSearch()">
+          <div class="logo-icon">S</div>
+          <span>Sheland</span>
+
+        </a>
+
+        <!-- Search Bar -->
+        <div class="search-box">
+          <div class="search-input-group">
+            <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن منتج، فئة، أو ماركة (مثل: فستان، ساعة، سماعات...)" oninput="handleSearchInput(this.value); filterProductsBySearch(this.value)">
+            <button class="search-btn" onclick="executeSearch()">
+              🔍 <span>بحث</span>
+            </button>
+          </div>
+          <!-- Auto Suggestions -->
+          <div class="search-suggestions" id="searchSuggestions">
+            <div class="suggestion-item" onclick="selectSuggestion('فستان صيفي')">👗 فستان صيفي نسائي</div>
+            <div class="suggestion-item" onclick="selectSuggestion('سماعات لاسلكية')">🎧 سماعات بلوتوث عازلة للضوضاء</div>
+            <div class="suggestion-item" onclick="selectSuggestion('ساعة ذكية')">⌚ ساعة ذكية مقاومة للماء</div>
+            <div class="suggestion-item" onclick="selectSuggestion('طقم طهي')">🍳 أدوات مطبخ غير لاصقة</div>
+            <div class="suggestion-item" onclick="selectSuggestion('سيروم')">💄 سيروم الهيالورونيك للبشرة</div>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+          <a href="/admin" target="_blank" class="action-item" style="color: var(--primary-dark); font-weight: 800;">
+            <span class="action-icon">⚙️</span>
+            <span>لوحة الأدمن</span>
+          </a>
+          <button class="action-item" onclick="openTrackingModal()">
+            <span class="action-icon">📍</span>
+            <span>تتبع الطلب</span>
+          </button>
+          <button class="action-item" onclick="openVendorModal()">
+            <span class="action-icon">🏢</span>
+            <span>بوابة البائع</span>
+          </button>
+          <button class="action-item" onclick="toggleWishlistModal()">
+            <span class="action-icon">❤️</span>
+            <span class="badge" id="wishlistCountBadge">0</span>
+            <span>المفضلة</span>
+          </button>
+          <button class="action-item" onclick="toggleCartDrawer()">
+            <span class="action-icon">🛒</span>
+            <span class="badge" id="cartCountBadge">0</span>
+            <span>السلة</span>
+          </button>
+        </div>
+
+
+      </div>
+    </div>
+
+    <!-- Category Nav & Mega Menu -->
+    <nav class="category-nav">
+      <div class="container">
+        <ul class="nav-list">
+          <li class="nav-item active"><a href="#" class="nav-link" onclick="filterByCategory(null)">✨ الكل</a></li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" onclick="filterByCategory(1)">👗 نساء ▾</a>
+            <div class="mega-menu">
+              <div>
+                <div class="mega-col-title">الملابس النسائية</div>
+                <ul class="mega-links">
+                  <li><a href="#" onclick="filterByCategory(1)">فساتين صيفية والسهرة</a></li>
+                  <li><a href="#" onclick="filterByCategory(1)">عبايات وحجابات</a></li>
+                  <li><a href="#" onclick="filterByCategory(1)">بلوزات وقمصان</a></li>
+                  <li><a href="#" onclick="filterByCategory(1)">بناطيل وتنورات</a></li>
+                </ul>
+              </div>
+              <div>
+                <div class="mega-col-title">الحقائب والأحذية</div>
+                <ul class="mega-links">
+                  <li><a href="#" onclick="filterByCategory(1)">حقائب يد فاخرة</a></li>
+                  <li><a href="#" onclick="filterByCategory(1)">أحذية كعب عالي</a></li>
+                  <li><a href="#" onclick="filterByCategory(1)">أحذية مريحة كاجوال</a></li>
+                </ul>
+              </div>
+              <div>
+                <div class="mega-col-title">الإكسسوارات والمجوهرات</div>
+                <ul class="mega-links">
+                  <li><a href="#" onclick="filterByCategory(6)">ساعات نسائية</a></li>
+                  <li><a href="#" onclick="filterByCategory(6)">نظارات شمسية</a></li>
+                  <li><a href="#" onclick="filterByCategory(6)">مجموعات مجوهرات</a></li>
+                </ul>
+              </div>
+            </div>
+          </li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(2)">👔 رجال</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(3)">🧸 أطفال</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(4)">🏠 المنزل والمطبخ</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(5)">💄 الجمال والعناية</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(6)">⌚ الإكسسوارات</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="filterByCategory(7)">🎧 الإلكترونيات</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" style="color: var(--danger);" onclick="filterByDeals()">🔥 عروض التخفيضات</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="container">
+
+    <!-- Hero Section Banner -->
+    <section class="hero-section">
+      <div class="hero-banner">
+        <div class="hero-content">
+          <span class="hero-tag">🔥 أقوى عروض الموسم - خصومات تصل 70%</span>
+          <h1 class="hero-title">تسوّق أحدث المنتجات بأسعار منخفضة جداً</h1>
+          <p class="hero-subtitle">أكثر من 700 فئة تشمل الأزياء، المنزل، الجمال والإلكترونيات مع شحن مجاني ودفع عند الاستلام.</p>
+          <a href="#productGridSection" class="hero-btn">
+            <span>تسوّق الآن فواً</span> ➔
+          </a>
+          <div class="hero-badges">
+            <div class="hero-badge-item">✓ شحن مجاني للمختارات</div>
+            <div class="hero-badge-item">✓ دفع عند الاستلام</div>
+            <div class="hero-badge-item">✓ إرجاع مجاني خلال 14 يوماً</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Categories -->
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title">تصفّح حسب الفئة</h2>
+      </div>
+      <div class="category-grid">
+        <div class="cat-card" onclick="filterByCategory(1)">
+          <div class="cat-icon-wrap">👗</div>
+          <div class="cat-name">أزياء نسائية</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(2)">
+          <div class="cat-icon-wrap">👔</div>
+          <div class="cat-name">ملابس رجالية</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(3)">
+          <div class="cat-icon-wrap">🧸</div>
+          <div class="cat-name">ملابس أطفال</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(4)">
+          <div class="cat-icon-wrap">🏠</div>
+          <div class="cat-name">أدوات المطبخ</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(5)">
+          <div class="cat-icon-wrap">💄</div>
+          <div class="cat-name">العناية والجمال</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(6)">
+          <div class="cat-icon-wrap">⌚</div>
+          <div class="cat-name">الإكسسوارات</div>
+        </div>
+        <div class="cat-card" onclick="filterByCategory(7)">
+          <div class="cat-icon-wrap">🎧</div>
+          <div class="cat-name">الإلكترونيات</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Flash Deals Section -->
+    <section class="flash-deals-box">
+      <div class="section-title-wrap">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <h2 class="section-title" style="color: var(--primary-dark);">⚡ عروض اليوم السريعة</h2>
+          <div class="countdown-timer">
+            <span>ينتهي العرض خلال:</span>
+            <span id="dealTimer">04:18:29</span>
+          </div>
+        </div>
+        <a href="#productGridSection" class="view-all-link" onclick="filterByDeals()">عرض الكل (خصم حتى 70%) ➔</a>
+      </div>
+
+      <!-- Flash Deals Items -->
+      <div class="product-grid" id="flashDealsGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Main Listing Layout with Filter Sidebar -->
+    <section id="productGridSection">
+      <div class="section-title-wrap">
+        <h2 class="section-title" id="currentCategoryTitle">جميع المنتجات المتاحة</h2>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="font-size: 14px; font-weight: 700;">ترتيب حسب:</label>
+          <select id="sortSelect" onchange="applySorting()" style="padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <option value="relevance">الأكثر صلة</option>
+            <option value="price_asc">السعر: الأقل إلى الأعلى</option>
+            <option value="price_desc">السعر: الأعلى إلى الأقل</option>
+            <option value="rating">الأعلى تقييماً</option>
+            <option value="newest">الأحدث وصولاً</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Meesho Style Category Quick Pills -->
+      <div class="meesho-pills-row">
+        <button class="meesho-pill active" onclick="filterByCategory(null, this)">✨ جميع المنتجات</button>
+        <button class="meesho-pill" onclick="filterByCategory(1, this)">👗 فساتين وأزياء نسائية</button>
+        <button class="meesho-pill" onclick="filterByCategory(2, this)">👔 ملابس رجالية</button>
+        <button class="meesho-pill" onclick="filterByCategory(3, this)">🧸 ملابس وألعاب أطفال</button>
+        <button class="meesho-pill" onclick="filterByCategory(4, this)">🏠 أدوات منزل ومطبخ</button>
+        <button class="meesho-pill" onclick="filterByCategory(5, this)">💄 جمال ومستحضرات</button>
+        <button class="meesho-pill" onclick="filterByCategory(6, this)">⌚ ساعات وإكسسوارات</button>
+        <button class="meesho-pill" onclick="filterByCategory(7, this)">🎧 إلكترونيات وسماعات</button>
+      </div>
+
+      <!-- Active Filter Chips -->
+      <div class="active-chips" id="activeFilterChips"></div>
+
+
+      <div class="listing-layout">
+        <!-- Sidebar Filter -->
+        <aside class="filter-sidebar">
+          <div class="filter-title">⚙️ تصفية المنتجات</div>
+
+          <!-- Price Filter -->
+          <div class="filter-group">
+            <div class="filter-group-title">السعر (ر.ي)</div>
+
+            <input type="range" id="priceRange" min="10" max="300" step="5" value="300" oninput="updatePriceFilterLabel(this.value)" onchange="applyFilters()" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--muted-text); margin-top: 4px;">
+              <span>10 ر.ي</span>
+              <span id="priceValueLabel">حتى 300 ر.ي</span>
+            </div>
+          </div>
+
+          <!-- Rating Filter -->
+          <div class="filter-group">
+            <div class="filter-group-title">التقييم</div>
+            <label class="filter-checkbox"><input type="checkbox" name="rating" value="4.5" onchange="applyFilters()"> ⭐ 4.5 وأعلى</label>
+            <label class="filter-checkbox"><input type="checkbox" name="rating" value="4.0" onchange="applyFilters()"> ⭐ 4.0 وأعلى</label>
+          </div>
+
+          <!-- Shipping Options -->
+          <div class="filter-group">
+            <div class="filter-group-title">خيارات الشحن والخدمات</div>
+            <label class="filter-checkbox"><input type="checkbox" id="freeShippingCheck" onchange="applyFilters()"> 🚚 توصيل مجاني</label>
+            <label class="filter-checkbox"><input type="checkbox" id="codCheck" onchange="applyFilters()"> 💵 الدفع عند الاستلام</label>
+          </div>
+
+          <button onclick="resetFilters()" style="width: 100%; padding: 8px; background: var(--border); border-radius: var(--radius-sm); font-weight: 700; font-size: 13px;">إعادة ضبط الفلاتر</button>
+        </aside>
+
+        <!-- Product Grid List -->
+        <div class="product-grid" id="mainProductsGrid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Product Details Quick View Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal-card">
+      <span class="modal-close-btn" onclick="closeProductModal()">✕</span>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <!-- Modal Gallery -->
+        <div>
+          <div style="width: 100%; aspect-ratio: 4/5; border-radius: var(--radius-md); overflow: hidden; background: #F0F0F0; margin-bottom: 12px;">
+            <img id="modalProductImg" src="" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        </div>
+
+        <!-- Modal Info -->
+        <div style="display: flex; flex-direction: column;">
+          <h2 id="modalProductTitle" style="font-size: 20px; font-weight: 800; margin-bottom: 10px;"></h2>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 14px;">
+            <span id="modalProductRating" style="color: var(--accent-gold); font-weight: 700;">⭐ 4.8</span>
+            <span style="color: var(--muted-text);" id="modalReviewCount">(1,240 تقييم)</span>
+            <span style="background: #E8F5E9; color: var(--success); font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">متوفر في المخزون</span>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px;">
+            <span id="modalCurrentPrice" style="font-size: 26px; font-weight: 900; color: var(--primary-dark);"></span>
+            <span id="modalComparePrice" style="font-size: 16px; color: var(--muted-text); text-decoration: line-through;"></span>
+            <span id="modalDiscountTag" style="background: var(--danger); color: white; font-weight: 800; font-size: 12px; padding: 2px 8px; border-radius: 4px;"></span>
+          </div>
+
+          <p id="modalDescription" style="font-size: 14px; color: var(--muted-text); margin-bottom: 18px; line-height: 1.6;"></p>
+
+          <!-- Variants Selection -->
+          <div style="margin-bottom: 18px;">
+            <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">اختر اللون:</label>
+            <div style="display: flex; gap: 10px;">
+              <button class="variant-btn active" style="padding: 6px 14px; border: 2px solid var(--primary); border-radius: var(--radius-sm); font-weight: 700;">أسود</button>
+              <button class="variant-btn" style="padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);">أبيض</button>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+            <label style="font-weight: 700; font-size: 14px;">الكمية:</label>
+            <div style="display: flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;">
+              <button onclick="changeModalQty(-1)" style="padding: 6px 12px; background: #F0F0F0; font-weight: 800;">-</button>
+              <span id="modalQtyVal" style="padding: 6px 16px; font-weight: 700;">1</span>
+              <button onclick="changeModalQty(1)" style="padding: 6px 12px; background: #F0F0F0; font-weight: 800;">+</button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; gap: 10px; margin-top: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+            <button onclick="addModalItemToCart()" style="flex: 1; background: var(--accent); color: var(--primary-dark); font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px;">🛒 أضف إلى السلة</button>
+            <button onclick="buyNowFromModal()" style="flex: 1; background: var(--primary); color: white; font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px;">⚡ اشترِ الآن</button>
+            <button onclick="orderViaWhatsAppModal()" style="flex: 1; min-width: 100%; background: #25D366; color: white; font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px; margin-top: 4px;">💬 طلب مباشر عبر الواتساب</button>
+          </div>
+
+
+          <!-- Meesho Supplier / Vendor Info Card -->
+          <div class="supplier-card-box">
+            <div class="supplier-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🏬</span>
+                <div>
+                  <div style="font-weight: 800; font-size: 14px;">متجر شي لاند المعتمد (Sheland Official Supplier)</div>
+
+                  <div style="font-size: 12px; color: var(--muted-text);">⭐ 4.8 تقييم المورد (أكثر من 12,400 طلب)</div>
+                </div>
+              </div>
+              <span class="trusted-badge">🏆 مورد موثوق</span>
+            </div>
+            <div style="display: flex; gap: 12px; font-size: 12px; color: var(--muted-text); border-top: 1px dashed #DDD; padding-top: 8px; margin-top: 8px;">
+              <span>✔️ ضمان المطابقة</span>
+              <span>↩️ إرجاع مجاني 7 أيام</span>
+              <span>💵 دفع عند الاستلام</span>
+            </div>
+          </div>
+
+
+          <!-- Customer Reviews Section -->
+          <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <span>💬 تقييمات العملاء ومراجعاتهم</span>
+              <button onclick="toggleReviewForm()" style="font-size: 12px; color: var(--primary); font-weight: 700;">+ إضافة تقييمك</button>
+            </h3>
+
+            <!-- Add Review Form (Hidden by default) -->
+            <div id="addReviewBox" style="display: none; background: #FAF5F9; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E8D4E5;">
+              <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">اختر التقييم بالنجوم:</div>
+              <select id="revRating" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px;">
+                <option value="5">⭐⭐⭐⭐⭐ ممتاز جداً (5/5)</option>
+                <option value="4">⭐⭐⭐⭐ جيد جداً (4/5)</option>
+                <option value="3">⭐⭐⭐ متوسط (3/5)</option>
+              </select>
+              <input type="text" id="revAuthor" placeholder="اسمك (اختياري)" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px;">
+              <textarea id="revComment" placeholder="اكتب تعليقك وانطباعك عن المنتج..." style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px; height: 60px;"></textarea>
+              <button onclick="submitProductReview()" style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 4px; font-weight: 700; font-size: 13px;">نشر التقييم 🚀</button>
+            </div>
+
+            <!-- Reviews List Container -->
+            <div id="productReviewsList" style="max-height: 180px; overflow-y: auto;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Personalized Recommendations Section -->
+          <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px;">
+            <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 10px; color: var(--primary-dark);">✨ منتجات قد تعجبك أيضاً (مقترحات ممثالة)</h3>
+            <div id="productRecommendationsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Cart Drawer -->
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-header">
+      <h3 style="font-weight: 800;">🛒 سلة التسوق الخاصة بك (<span id="drawerCartCount">0</span>)</h3>
+      <span style="font-size: 20px; cursor: pointer;" onclick="toggleCartDrawer()">✕</span>
+    </div>
+    <div class="cart-body" id="cartItemsList">
+      <!-- Dynamic cart items rendered here -->
+    </div>
+    <div class="cart-footer">
+      <!-- Promo Code Box -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <input type="text" id="couponCodeInput" placeholder="كود الخصم (مثال: CITY10)" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; text-transform: uppercase;">
+        <button onclick="applyCouponCode()" style="background: var(--primary-dark); color: white; padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px;">تطبيق الكوبون</button>
+      </div>
+      <div id="couponAppliedMsg" style="font-size: 12px; font-weight: 700; color: var(--success); margin-bottom: 8px; display: none;"></div>
+
+      <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; margin-bottom: 16px;">
+        <span>الإجمالي النهائي:</span>
+        <span id="cartTotalVal" style="color: var(--primary-dark);">0.00 ر.ي</span>
+
+      </div>
+      <button onclick="openCheckoutModal()" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 16px;">متابعة الشراء والتأكيد ➔</button>
+    </div>
+  </div>
+
+  <!-- Order Tracking Modal -->
+  <div class="modal-overlay" id="trackModal">
+    <div class="modal-card" style="max-width: 600px;">
+      <span class="modal-close-btn" onclick="closeTrackingModal()">✕</span>
+      <h2 style="font-weight: 900; margin-bottom: 12px; text-align: center; color: var(--primary);">📍 تتبع الطلب والشحنات</h2>
+      <p style="font-size: 13px; color: var(--muted-text); text-align: center; margin-bottom: 20px;">أدخل رقم الطلب الخاص بك (مثال: ORD-88219A) لمتابعة خط التوصيل المباشر</p>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <input type="text" id="trackOrderNumInput" placeholder="أدخل رقم الطلب هنا..." style="flex: 1; padding: 10px 14px; border: 2px solid var(--primary); border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;">
+        <button onclick="executeTrackOrder()" style="background: var(--primary); color: white; padding: 10px 24px; border-radius: var(--radius-md); font-weight: 800;">تتبع الآن 🔍</button>
+      </div>
+
+      <div id="trackingResultBox" style="display: none; background: #FAF5F9; border-radius: 12px; padding: 20px; border: 1px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 16px; border-bottom: 1px solid #E0E0E0; padding-bottom: 10px;">
+          <span>رقم الطلب: <span id="trNumDisplay" style="color: var(--primary-dark);"></span></span>
+          <span style="background: var(--success); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;" id="trStatusDisplay">قيد التوصيل</span>
+        </div>
+
+        <!-- Tracking Timeline Steps -->
+        <div style="display: flex; justify-content: space-between; position: relative; margin: 30px 0;">
+          <div style="text-align: center; z-index: 2;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">✓</div>
+            <div style="font-size: 11px; font-weight: 700;">تم الاستلام</div>
+          </div>
+          <div style="text-align: center; z-index: 2;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">✓</div>
+            <div style="font-size: 11px; font-weight: 700;">قيد التجهيز</div>
+          </div>
+          <div style="text-align: center; z-index: 2;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🚚</div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--primary-dark);">في الطريق إليك</div>
+          </div>
+          <div style="text-align: center; z-index: 2;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: #777; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🏠</div>
+            <div style="font-size: 11px; color: #777;">تم التسليم</div>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--muted-text);" id="trAddressDisplay"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Mandatory Customer Auth & Phone Collection Modal -->
+  <div class="modal-overlay" id="customerAuthModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <span class="modal-close-btn" onclick="closeCustomerAuthModal()">✕</span>
+      <div style="text-align: center; margin-bottom: 16px;">
+        <div style="font-size: 40px; margin-bottom: 6px;">📱</div>
+        <h2 style="font-weight: 900; color: var(--primary);">تسجيل رقم الجوال للحساب</h2>
+        <p style="font-size: 13px; color: var(--muted-text);">يرجى إدخال رقم الجوال واسمك الكريم لربط الطلب وتأكيد الشحن إلى مدينة البيضاء وكافة المحافظات.</p>
+      </div>
+
+      <form onsubmit="handleCustomerAuthSubmit(event)">
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 700;">اسمك الكريم (الاسم الثلاثي) *:</label>
+          <input type="text" id="authCustomerName" required placeholder="مثال: ياسر العبدلي" style="width:100%; padding:10px; border:1px solid #CCC; border-radius:6px; font-weight:700;">
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 700;">رقم الجوال *:</label>
+          <div style="display: flex; gap: 8px; direction: ltr;">
+            <select id="authCountryCode" style="width: 120px; padding: 10px; border: 1px solid #CCC; border-radius: 6px; font-weight: 700; background: #F8F9FA;">
+              <option value="+967" selected>🇾🇪 +967 (اليمن)</option>
+              <option value="+966">🇸🇦 +966 (السعودية)</option>
+              <option value="+971">🇦🇪 +971 (الإمارات)</option>
+              <option value="+965">🇰🇼 +965 (الكويت)</option>
+              <option value="+974">🇶🇦 +974 (قطر)</option>
+              <option value="+968">🇴🇲 +968 (عُمان)</option>
+              <option value="+962">🇯🇴 +962 (الأردن)</option>
+              <option value="+20">🇪🇬 +20 (مصر)</option>
+            </select>
+            <input type="tel" id="authCustomerPhone" required placeholder="771234567" pattern="[0-9]{7,12}" style="flex: 1; padding: 10px; border: 1px solid #CCC; border-radius: 6px; font-weight: 700; text-align: left; direction: ltr;">
+          </div>
+        </div>
+
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 13px; font-weight: 700;">المدينة / المحافظة *:</label>
+          <select id="authCustomerCity" style="width:100%; padding:10px; border:1px solid #CCC; border-radius:6px; font-weight:700;">
+            <option value="البيضاء" selected>🏰 مدينة البيضاء (المحطة الأولى والرئيسية)</option>
+            <option value="صنعاء">العاصمة صنعاء</option>
+            <option value="عدن">عدن</option>
+            <option value="تعز">تعز</option>
+            <option value="إب">إب</option>
+            <option value="حضرموت">حضرموت (المكلا / سيئون)</option>
+            <option value="ذمار">ذمار</option>
+            <option value="مأرب">مأرب</option>
+          </select>
+        </div>
+
+        <button type="submit" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 15px;">حفظ البيانات والمتابعة للشراء ➔</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5-Step Checkout Modal -->
+
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal-card" style="max-width: 600px;">
+      <span class="modal-close-btn" onclick="closeCheckoutModal()">✕</span>
+      <h2 style="font-weight: 900; margin-bottom: 20px; text-align: center; color: var(--primary);">📋 إتمام الطلب الشامل</h2>
+
+      <div id="checkoutStep1">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">1. رقم الجوال وعنوان التوصيل</h3>
+        <input type="text" id="custName" placeholder="الاسم الكامل" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px;">
+        <input type="tel" id="custPhone" placeholder="رقم الجوال (مثال: 0551234567)" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px;">
+        <textarea id="custAddress" placeholder="عنوان التوصيل الشامل (المدينة، الحي، اسم الشارع)" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; height: 80px;"></textarea>
+
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">2. اختر طريقة الدفع</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="COD" checked> 💵 الدفع عند الاستلام (Cash on Delivery)</label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="MADA"> 💳 مدى / بطاقة ائتمانية (Mada / Credit Card)</label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="APPLEPAY"> 🍏 أبل باي (Apple Pay)</label>
+        </div>
+
+        <button onclick="submitOrderProcess()" style="width: 100%; background: var(--success); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 16px;">تأكيد الطلب الآن ✔️</button>
+      </div>
+
+      <div id="checkoutSuccess" style="display: none; text-align: center; padding: 20px;">
+        <div style="font-size: 60px; color: var(--success); margin-bottom: 10px;">🎉</div>
+        <h2 style="font-weight: 900; color: var(--success); margin-bottom: 8px;">تم تأكيد طلبك بنجاح!</h2>
+        <p style="font-size: 15px; color: var(--muted-text); margin-bottom: 16px;">رقم الطلب الخاص بك هو: <strong id="placedOrderNum" style="color: var(--primary-dark);">ORD-88219A</strong></p>
+        <p style="font-size: 14px; margin-bottom: 24px;">سيتم التواصل معك عبر الواتساب والجوال لتتبع الشحنة فور جهوزيتها.</p>
+        <button onclick="closeCheckoutModal()" style="background: var(--primary); color: white; padding: 10px 24px; border-radius: var(--radius-full); font-weight: 700;">العودة للتسوق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Portal Modal -->
+  <div class="modal-overlay" id="vendorModal">
+    <div class="modal-card" style="max-width: 650px;">
+      <span class="modal-close-btn" onclick="closeVendorModal()">✕</span>
+      <h2 style="font-weight: 900; margin-bottom: 10px; color: var(--primary);">🛍️ بوابة البائعين والخصومات - Sheland Vendor</h2>
+
+      <p style="font-size: 14px; color: var(--muted-text); margin-bottom: 20px;">أضف منتجك الجديد مباشرة ليظهر في قائمة معروضات المنصة لآلاف المشترين.</p>
+
+      <form onsubmit="handleVendorAddProduct(event)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">اسم المنتج (بالعربية):</label>
+            <input type="text" id="vProdTitle" required placeholder="مثال: فستان سهرة مخمل" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+          </div>
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">الفئة الرئيسية:</label>
+            <select id="vProdCat" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <option value="1">نساء</option>
+              <option value="2">رجال</option>
+              <option value="3">أطفال</option>
+              <option value="4">المنزل والمطبخ</option>
+              <option value="5">الجمال والعناية</option>
+              <option value="6">الإكسسوارات</option>
+              <option value="7">الإلكترونيات</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">السعر النهائي (ر.ي):</label>
+            <input type="number" id="vProdPrice" required placeholder="12000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+          </div>
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">السعر قبل الخصم (ر.ي):</label>
+            <input type="number" id="vProdOldPrice" placeholder="20000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+          </div>
+
+        </div>
+
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 13px; font-weight: 700;">المدينة / المحافظة *:</label>
+              <select id="custCity" style="width:100%; padding:10px; border:1px solid #CCC; border-radius:6px; font-weight:700;">
+                <option value="البيضاء" selected>🏰 مدينة البيضاء (المحطة الأولى والرئيسية)</option>
+                <option value="صنعاء">العاصمة صنعاء</option>
+                <option value="عدن">عدن</option>
+                <option value="تعز">تعز</option>
+                <option value="إب">إب</option>
+                <option value="حضرموت">حضرموت (المكلا / سيئون)</option>
+                <option value="ذمار">ذمار</option>
+                <option value="مأرب">مأرب</option>
+                <option value="الحديدة">الحديدة</option>
+              </select>
+            </div>
+
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: 700; font-size: 13px;">رابط صورة المنتج (URL):</label>
+          <input type="url" id="vProdImg" required placeholder="https://images.unsplash.com/photo-..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+        </div>
+
+        <button type="submit" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 12px; border-radius: var(--radius-md);">إضافة المنتج إلى المنصة فوراً 🚀</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Footer -->
+  <footer style="background: var(--surface); border-top: 1px solid var(--border); padding: 30px 0 100px; margin-top: 50px; text-align: center;">
+    <div class="container">
+      <div style="font-weight: 800; font-size: 18px; color: var(--primary); margin-bottom: 8px;">🛍️ Sheland | سوق شي لاند الإلكتروني</div>
+      <p style="font-size: 13px; color: var(--muted-text); margin-bottom: 16px;">السوق الإلكتروني الشامل بأسعار منخفضة جداً وتوصيل مباشر إلى مدينة البيضاء وكافة المحافظات اليمنية.</p>
+      <div style="font-size: 13px; color: var(--muted-text); border-top: 1px solid var(--border); padding-top: 16px;">
+        جميع الحقوق محفوظة © 2026 Sheland | تم التطوير لـ <b>شي لاند</b> بواسطة <a href="https://www.linkedin.com/in/yaser-alhumikani-412042319" target="_blank" style="color: var(--primary-dark); font-weight: 800; text-decoration: underline;">Y-TECHNO (واي تكنو)</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Navigation -->
+
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="mobile-nav-item active" onclick="filterByCategory(null)">
+      <span class="mobile-nav-icon">🏠</span>
+      <span>الرئيسية</span>
+    </a>
+    <a href="#productGridSection" class="mobile-nav-item" onclick="filterByCategory(1)">
+      <span class="mobile-nav-icon">📂</span>
+      <span>الفئات</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="toggleWishlistModal()">
+      <span class="mobile-nav-icon">❤️</span>
+      <span>المفضلة</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="toggleCartDrawer()">
+      <span class="mobile-nav-icon">🛒</span>
+      <span>السلة</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="openAccountModal()">
+      <span class="mobile-nav-icon">👤</span>
+      <span>حسابي</span>
+    </a>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
