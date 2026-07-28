@@ -22,7 +22,9 @@
   <div class="top-bar">
     <div class="container">
       <span>🚚 الشحن والتوصيل مباشر إلى <b>مدينة البيضاء</b> وكافة المحافظات اليمنية | 📦 الدفع عند الاستلام متوفر</span>
-      <div class="top-bar-links">
+        <button id="pwaInstallBtn" onclick="installPWAApp()" class="pwa-install-btn">
+          📱 تثبيت التطبيق
+        </button>
         <button onclick="toggleDarkTheme()" id="themeToggleBtn" style="background: none; border: none; color: var(--accent-gold); font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit;">🌙 الوضع الليلي</button>
         <span style="background: rgba(255,255,255,0.2); color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🇾🇪 YER (الريال اليمني)</span>
         <a href="#trackModal" onclick="openTrackModal()">📦 تتبع طلبك</a>
@@ -804,6 +806,21 @@
       <div style="margin-top: 16px; text-align: left;">
         <button onclick="closeAccountModal()" style="background: #E0E0E0; color: #333; padding: 8px 20px; border-radius: 6px; border: none; font-weight: 700; cursor: pointer; font-size: 13px;">إغلاق النافذة</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Floating PWA Install Banner -->
+  <div id="pwaBanner" class="pwa-banner" style="display: none;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 28px;">📱</span>
+      <div>
+        <strong style="display: block; font-size: 14px;">تطبيق شي لاند على هاتفك 📲</strong>
+        <span style="font-size: 12px; opacity: 0.85;">تصفح سريع بدون إنترنت وتنبيهات العروض الحصرية!</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onclick="installPWAApp()" class="pwa-banner-btn">تثبيت التطبيق ⚡</button>
+      <button onclick="dismissPWABanner()" class="pwa-close-btn" title="إغلاق">✕</button>
     </div>
   </div>
 

@@ -1219,3 +1219,53 @@ function startCountdownTimer() {
     timerElem.innerText = `${hrs}:${mins}:${secs}`;
   }, 1000);
 }
+
+// Progressive Web App (PWA) Installation Logic
+let deferredPwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+
+  const pwaBtn = document.getElementById('pwaInstallBtn');
+  const pwaBanner = document.getElementById('pwaBanner');
+
+  if (pwaBtn) pwaBtn.style.display = 'inline-flex';
+  if (pwaBanner && !localStorage.getItem('pwa_banner_dismissed')) {
+    pwaBanner.style.display = 'flex';
+  }
+});
+
+async function installPWAApp() {
+  if (!deferredPwaPrompt) {
+    showToast("تطبيق شي لاند مثبت بالفعل على جهازك أو أن متصفحك يتيح التثبيت من الخيارات 📲", "info", "📱");
+    return;
+  }
+
+  deferredPwaPrompt.prompt();
+  const { outcome } = await deferredPwaPrompt.userChoice;
+  if (outcome === 'accepted') {
+    showToast("تم تثبيت تطبيق Sheland على جهازك بنجاح! 🚀", "success", "🎉");
+  }
+  deferredPwaPrompt = null;
+
+  const pwaBtn = document.getElementById('pwaInstallBtn');
+  const pwaBanner = document.getElementById('pwaBanner');
+  if (pwaBtn) pwaBtn.style.display = 'none';
+  if (pwaBanner) pwaBanner.style.display = 'none';
+}
+
+function dismissPWABanner() {
+  const banner = document.getElementById('pwaBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('pwa_banner_dismissed', 'true');
+}
+
+window.addEventListener('appinstalled', () => {
+  console.log('Sheland PWA App installed successfully!');
+  deferredPwaPrompt = null;
+  const pwaBtn = document.getElementById('pwaInstallBtn');
+  const pwaBanner = document.getElementById('pwaBanner');
+  if (pwaBtn) pwaBtn.style.display = 'none';
+  if (pwaBanner) pwaBanner.style.display = 'none';
+});
