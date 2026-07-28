@@ -1237,10 +1237,29 @@
     }
 
     function switchAdminTab(tabId, btn) {
-      document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.admin-tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(tabId).style.display = 'block';
-      btn.classList.add('active');
+      const tabs = document.querySelectorAll('.admin-tab-content');
+      tabs.forEach(tab => {
+        tab.style.setProperty('display', 'none', 'important');
+      });
+
+      const btns = document.querySelectorAll('.admin-tab-btn');
+      btns.forEach(b => {
+        b.classList.remove('active');
+      });
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) {
+        targetTab.style.setProperty('display', 'block', 'important');
+      }
+      if (btn) btn.classList.add('active');
+
+      if (tabId === 'ordersTab') {
+        loadAdminOrders();
+      } else if (tabId === 'productsTab') {
+        loadAdminProducts();
+      } else if (tabId === 'kpisTab') {
+        loadAdminKPIs();
+      }
     }
 
     function openAddProductModal() {
