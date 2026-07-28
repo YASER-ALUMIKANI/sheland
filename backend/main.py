@@ -206,7 +206,9 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(db_product)
 
-    stock_val = product_in.stock if product_in.stock is not None else 10
+    stock_val = getattr(product_in, 'stock', 10)
+    if stock_val is None:
+        stock_val = 10
 
     if product_in.variants and len(product_in.variants) > 0:
         for v in product_in.variants:
@@ -241,7 +243,7 @@ def update_product(product_id: int, product_in: schemas.ProductCreate, db: Sessi
     db_product.title_en = product_in.title_en
     db_product.category_id = product_in.category_id
     db_product.price = product_in.price
-    if product_in.cost_price is not None:
+    if getattr(product_in, 'cost_price', None) is not None:
         db_product.cost_price = product_in.cost_price
     db_product.compare_at_price = product_in.compare_at_price
     db_product.image_url = product_in.image_url
@@ -249,12 +251,13 @@ def update_product(product_id: int, product_in: schemas.ProductCreate, db: Sessi
     db_product.free_shipping = product_in.free_shipping
     db_product.cod_available = product_in.cod_available
 
-    if product_in.stock is not None:
+    p_stock = getattr(product_in, 'stock', None)
+    if p_stock is not None:
         first_variant = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).first()
         if first_variant:
-            first_variant.stock = product_in.stock
+            first_variant.stock = p_stock
         else:
-            db.add(models.ProductVariant(product_id=product_id, sku=f"SKU-{product_id}", stock=product_in.stock))
+            db.add(models.ProductVariant(product_id=product_id, sku=f"SKU-{product_id}", stock=p_stock))
 
     db.commit()
     db.refresh(db_product)

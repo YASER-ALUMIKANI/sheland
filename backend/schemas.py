@@ -46,6 +46,7 @@ class ProductBase(BaseModel):
     category_id: int
 
     seller_id: int = 1
+    stock: Optional[int] = 10
     free_shipping: bool = True
     cod_available: bool = True
 
