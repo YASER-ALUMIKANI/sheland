@@ -434,7 +434,7 @@ async function loadProductReviews(prodId) {
       container.innerHTML = revs.map(r => `
         <div style="border-bottom:1px solid #EEE; padding:8px 0;">
           <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-            <span>👤 ${escapeHTML(r.author_name || 'عميل سيتي لاند')}</span>
+            <span>👤 ${escapeHTML(r.author_name || 'عميل شي لاند')}</span>
             <span style="color:var(--accent-gold);">⭐ ${r.rating}/5</span>
           </div>
           <p style="font-size:12px; color:#555; margin-top:2px;">${escapeHTML(r.comment || '')}</p>
@@ -464,7 +464,7 @@ async function submitProductReview() {
     return;
   }
 
-  const payload = { author_name: author || "عميل سيتي لاند", rating, comment };
+  const payload = { author_name: author || "عميل شي لاند", rating, comment };
 
   try {
     const res = await fetch(`${API_BASE}/products/${currentModalProduct.id}/reviews`, {
@@ -544,16 +544,42 @@ function closeTrackingModal() {
 }
 
 async function executeTrackOrder() {
-  const num = document.getElementById('trackOrderNumInput').value.trim();
+  const num = document.getElementById('trackOrderNumInput').value.trim().toUpperCase();
   if (!num) {
-    alert("يرجى إدخال رقم الطلب للتتبع.");
+    showToast("يرجى إدخال رقم الطلب للتتبع.", 'danger', '⚠️');
     return;
   }
 
   const resBox = document.getElementById('trackingResultBox');
   document.getElementById('trNumDisplay').innerText = num;
-  document.getElementById('trAddressDisplay').innerText = `العنوان المقيد: الرياض - المملكة العربية السعودية (حالة الشحنة: في الطريق للتسليم)`;
-  resBox.style.display = 'block';
+  resBox.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/orders/track/${num}`);
+    if (res.ok) {
+      const order = await res.json();
+      const statusMap = {
+        'قيد المعالجة': 'يجري تجهيز طلبك',
+        'processing': 'يجري تجهيز طلبك',
+        'قيد التجهيز': 'في التجهيز والتغليف',
+        'تم الشحن': 'في الطريق إليك 🚚',
+        'shipped': 'في الطريق إليك 🚚',
+        'مكتمل': 'تم التسليم ✔️',
+        'completed': 'تم التسليم ✔️',
+        'ملغي': 'تم الإلغاء ❌',
+        'cancelled': 'تم الإلغاء ❌'
+      };
+      const statusDisplay = statusMap[order.status] || order.status || 'جاري المعالجة';
+      document.getElementById('trStatusDisplay').innerText = statusDisplay;
+      document.getElementById('trAddressDisplay').innerText =
+        `📍 عنوان التوصيل: ${order.shipping_address || '-'} | تاريخ الطلب: ${new Date(order.created_at).toLocaleDateString('ar-EG')}`;
+      resBox.style.display = 'block';
+    } else {
+      showToast('لم يتم العثور على طلب بهذا الرقم. تحقق من رقم الطلب.', 'danger', '❌');
+    }
+  } catch (err) {
+    showToast('تعذر الاتصال بالخادم للتتبع. حاول لاحقاً.', 'warning', '⚠️');
+  }
 }
 
 

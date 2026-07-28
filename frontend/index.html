@@ -27,7 +27,6 @@
         <span style="background: rgba(255,255,255,0.2); color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🇾🇪 YER (الريال اليمني)</span>
         <a href="#trackModal" onclick="openTrackModal()">📦 تتبع طلبك</a>
         <a href="/vendor" target="_blank" style="color: var(--accent-gold); font-weight: 700;">🛍️ بوابة البائعين</a>
-        <a href="/admin">⚙️ لوحة الأدمن</a>
 
       </div>
 
@@ -71,10 +70,6 @@
 
         <!-- Header Actions -->
         <div class="header-actions">
-          <a href="/admin" target="_blank" class="action-item" style="color: var(--primary-dark); font-weight: 800;">
-            <span class="action-icon">⚙️</span>
-            <span>لوحة الأدمن</span>
-          </a>
           <button class="action-item" onclick="openTrackingModal()">
             <span class="action-icon">📍</span>
             <span>تتبع الطلب</span>
@@ -157,7 +152,7 @@
           <h1 class="hero-title">تسوّق أحدث المنتجات بأسعار منخفضة جداً</h1>
           <p class="hero-subtitle">أكثر من 700 فئة تشمل الأزياء، المنزل، الجمال والإلكترونيات مع شحن مجاني ودفع عند الاستلام.</p>
           <a href="#productGridSection" class="hero-btn">
-            <span>تسوّق الآن فواً</span> ➔
+            <span>تسوّق الآن فوراً</span> ➔
           </a>
           <div class="hero-badges">
             <div class="hero-badge-item">✓ شحن مجاني للمختارات</div>
@@ -552,9 +547,8 @@
 
         <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">2. اختر طريقة الدفع</h3>
         <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="COD" checked> 💵 الدفع عند الاستلام (Cash on Delivery)</label>
-          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="MADA"> 💳 مدى / بطاقة ائتمانية (Mada / Credit Card)</label>
-          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="APPLEPAY"> 🍏 أبل باي (Apple Pay)</label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 14px; border: 2px solid var(--primary); border-radius: var(--radius-sm); cursor: pointer; background: var(--accent);"><input type="radio" name="payMethod" value="COD" checked> 💵 الدفع عند الاستلام (Cash on Delivery)</label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="BANK"> 🏦 التحويل البنكي المسبق</label>
         </div>
 
         <button onclick="submitOrderProcess()" style="width: 100%; background: var(--success); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 16px;">تأكيد الطلب الآن ✔️</button>
