@@ -272,11 +272,12 @@
           <div class="filter-group">
             <div class="filter-group-title">السعر (ر.ي)</div>
 
-            <input type="range" id="priceRange" min="10" max="300" step="5" value="300" oninput="updatePriceFilterLabel(this.value)" onchange="applyFilters()" style="width: 100%;">
+            <input type="range" id="priceRange" min="1000" max="100000" step="1000" value="100000" oninput="updatePriceFilterLabel(this.value)" onchange="applyFilters()" style="width: 100%;">
             <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--muted-text); margin-top: 4px;">
-              <span>10 ر.ي</span>
-              <span id="priceValueLabel">حتى 300 ر.ي</span>
+              <span>1,000 ر.ي</span>
+              <span id="priceValueLabel">حتى 100,000 ر.ي</span>
             </div>
+
           </div>
 
           <!-- Rating Filter -->

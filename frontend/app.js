@@ -373,13 +373,15 @@ function applyFilters() {
   renderProductsGrid();
 }
 
+const DEFAULT_MAX_PRICE = 100000;
+
 function updatePriceFilterLabel(val) {
-  document.getElementById('priceValueLabel').innerText = `حتى ${val} ر.ي`;
+  document.getElementById('priceValueLabel').innerText = `حتى ${formatPrice(val)}`;
 }
 
 function resetFilters() {
-  document.getElementById('priceRange').value = 300;
-  updatePriceFilterLabel(300);
+  document.getElementById('priceRange').value = DEFAULT_MAX_PRICE;
+  updatePriceFilterLabel(DEFAULT_MAX_PRICE);
   document.getElementById('freeShippingCheck').checked = false;
   document.getElementById('codCheck').checked = false;
   document.querySelectorAll('input[name="rating"]').forEach(cb => cb.checked = false);
@@ -395,8 +397,8 @@ function updateFilterChips() {
     chips.push(`<span class="chip" onclick="filterByCategory(null)">${categoryNames[selectedCategoryId]} ✕</span>`);
   }
   const maxPrice = parseFloat(document.getElementById('priceRange').value);
-  if (maxPrice < 300) {
-    chips.push(`<span class="chip" onclick="updatePriceFilterLabel(300); document.getElementById('priceRange').value=300; applyFilters();">حتى ${maxPrice} ر.ي ✕</span>`);
+  if (maxPrice < DEFAULT_MAX_PRICE) {
+    chips.push(`<span class="chip" onclick="updatePriceFilterLabel(${DEFAULT_MAX_PRICE}); document.getElementById('priceRange').value=${DEFAULT_MAX_PRICE}; applyFilters();">حتى ${formatPrice(maxPrice)} ✕</span>`);
   }
 
   chipsContainer.innerHTML = chips.join('');
