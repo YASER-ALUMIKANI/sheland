@@ -268,6 +268,7 @@
       <button class="admin-tab-btn active" onclick="switchAdminTab('productsTab', this)">📦 إدارة المنتجات والكتالوج</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('categoriesTab', this)">📂 إدارة التصنيفات</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('ordersTab', this)">📋 متابعة الطلبات</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('kpisTab', this)">📊 مركز مؤشرات الأداء (KPIs Center)</button>
     </div>
 
     <!-- TAB 1: Products Management -->
@@ -348,7 +349,148 @@
               <!-- Rendered dynamically -->
             </tbody>
           </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: E-commerce KPIs Center -->
+    <div id="kpisTab" class="admin-tab-content" style="display: none;">
+      <!-- Golden Triangle Highlight Card -->
+      <div style="background: linear-gradient(135deg, #4A154B 0%, #2D0F31 100%); color: white; border-radius: 14px; padding: 24px; margin-bottom: 24px; box-shadow: 0 6px 20px rgba(74, 21, 75, 0.25);">
+        <h3 style="font-weight: 900; font-size: 18px; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <span>🔺 المثلث الذهبي للتركيز والنمو السريع (The Golden Triangle)</span>
+        </h3>
+        <p style="font-size: 13px; color: #E0D0E0; margin-bottom: 16px;">
+          معادلة النمو التراكمي المباشر دون الحاجة لزيادة ميزانية الإعلانات: <b>[معدل التحويل CR] × [متوسط قيمة السلة AOV] × [تكرار الشراء Repeat Rate]</b>
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; background: rgba(255,255,255,0.08); padding: 16px; border-radius: 10px;">
+          <div style="border-right: 2px solid rgba(255,255,255,0.15); padding-right: 12px;">
+            <div style="font-size: 12px; color: #CCC; font-weight: 700;">معدل التحويل (CR)</div>
+            <div style="font-size: 22px; font-weight: 900; color: #FFD700;" id="kpiGtCr">2.32%</div>
+          </div>
+          <div style="border-right: 2px solid rgba(255,255,255,0.15); padding-right: 12px;">
+            <div style="font-size: 12px; color: #CCC; font-weight: 700;">متوسط قيمة السلة (AOV)</div>
+            <div style="font-size: 22px; font-weight: 900; color: #81C784;" id="kpiGtAov">121,996 ر.ي</div>
+          </div>
+          <div style="border-right: 2px solid rgba(255,255,255,0.15); padding-right: 12px;">
+            <div style="font-size: 12px; color: #CCC; font-weight: 700;">تكرار الشراء (Repeat Rate)</div>
+            <div style="font-size: 22px; font-weight: 900; color: #64B5F6;" id="kpiGtRepeat">100%</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #CCC; font-weight: 700;">مؤشر النمو التراكمي</div>
+            <div style="font-size: 22px; font-weight: 900; color: var(--accent);" id="kpiGtScore">5,660.64</div>
+          </div>
         </div>
+      </div>
+
+      <!-- 5 Categorized KPI Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        
+        <!-- 1. Marketing & Acquisition -->
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h4 style="margin: 0 0 16px 0; color: var(--primary-dark); font-weight: 900; font-size: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+            📢 1. التسويق والجذب (Marketing)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>تكلفة الاستحواذ على العميل (CAC):</b><br><small style="color:#777;">ميزانية الإعلانات المباشرة لكل عميل جديد</small></span>
+              <span style="font-weight: 800; color: var(--primary);" id="kpiCac">1,450.00 ر.ي</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>معدل النقر والزيارات (CTR / Traffic):</b><br><small style="color:#777;">مدى كفاءة الحملات في جلب الزوار</small></span>
+              <span style="font-weight: 800; color: var(--success);" id="kpiCtr">4.2%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span><b>إجمالي زيارات المتجر (Traffic):</b><br><small style="color:#777;">عدد النقاط النشطة المستقطبة</small></span>
+              <span style="font-weight: 800; color: var(--text);" id="kpiVisitors">1,250 زيارة</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Sales & Conversion -->
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h4 style="margin: 0 0 16px 0; color: var(--primary-dark); font-weight: 900; font-size: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+            🎯 2. البيع والتحويل (Sales & Conversion)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>معدل التحويل (Conversion Rate - CR):</b><br><small style="color:#777;">نسبة الزوار الذين أكملوا الشراء</small></span>
+              <span style="font-weight: 800; color: var(--success);" id="kpiCr">2.32%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>معدل هجر السلة (Cart Abandonment):</b><br><small style="color:#777;">نسبة من غادروا السلة قبل الدفع</small></span>
+              <span style="font-weight: 800; color: var(--warning);" id="kpiCartAbandon">64.2%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span><b>متوسط قيمة الطلب (AOV):</b><br><small style="color:#777;">معدل إنفاق العميل بالسلة الواحدة</small></span>
+              <span style="font-weight: 800; color: var(--primary-dark);" id="kpiAov">121,996.55 ر.ي</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Finance & Profitability -->
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h4 style="margin: 0 0 16px 0; color: var(--primary-dark); font-weight: 900; font-size: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+            💰 3. الأداء المالي والربحية (Finance)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>إجمالي المبيعات والإيرادات (Gross Revenue):</b><br><small style="color:#777;">مجموع المحصل الفعلي من المبيعات</small></span>
+              <span style="font-weight: 800; color: var(--primary-dark);" id="kpiGrossRevenue">3,537,900.00 ر.ي</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>هامش الربح الإجمالي (Gross Margin):</b><br><small style="color:#777;">صافي الأرباح بعد خصم البضائع</small></span>
+              <span style="font-weight: 800; color: var(--success);" id="kpiGrossMarginRate">38.5%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span><b>معدل المرتجعات والإلغاء (Return Rate):</b><br><small style="color:#777;">نسبة الطلبات الملغاة أو المرتجعة</small></span>
+              <span style="font-weight: 800; color: var(--danger);" id="kpiReturnRate">0.0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Retention & Loyalty -->
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h4 style="margin: 0 0 16px 0; color: var(--primary-dark); font-weight: 900; font-size: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+            🔄 4. الاحتفاظ بالعملاء (Retention)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>القيمة الدائمة للعميل (CLV / LTV):</b><br><small style="color:#777;">إجمالي أرباح العميل طوال تعامله</small></span>
+              <span style="font-weight: 800; color: var(--primary);" id="kpiClv">1,179,300.00 ر.ي</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>معدل الشراء المكرر (Repeat Purchase Rate):</b><br><small style="color:#777;">نسبة العملاء الذين كرّروا الطلب</small></span>
+              <span style="font-weight: 800; color: var(--success);" id="kpiRepeatRate">100.0%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span><b>عدد العملاء النشطين والمستمرين:</b><br><small style="color:#777;">العملاء المسجلون بالسيرفر</small></span>
+              <span style="font-weight: 800; color: var(--text);" id="kpiUniqueCust">3 عملاء</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Operations & Logistics -->
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h4 style="margin: 0 0 16px 0; color: var(--primary-dark); font-weight: 900; font-size: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+            📦 5. العمليات والمخزون (Operations)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>معدل دوران المخزون (Turnover Rate):</b><br><small style="color:#777;">سرعة تصريف وتجديد البضائع</small></span>
+              <span style="font-weight: 800; color: var(--primary-dark);" id="kpiTurnover">22.4%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px dashed #EEE; padding-bottom: 8px;">
+              <span><b>إجمالي قطع المخزون المتاحة:</b><br><small style="color:#777;">عدد الأحذية والقطع بالمستودع</small></span>
+              <span style="font-weight: 800; color: var(--success);" id="kpiStockRemaining">642 قطعة</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span><b>زمن التوصيل والتنفيذ (Fulfillment Time):</b><br><small style="color:#777;">متوسط وقت تجهيز وشحن الطلب</small></span>
+              <span style="font-weight: 800; color: var(--text);" id="kpiFulfillmentTime">18 ساعة</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -479,7 +621,50 @@
         loadAdminOrders();
       } else if (tabId === 'productsTab') {
         loadAdminProducts();
+      } else if (tabId === 'kpisTab') {
+        loadAdminKPIs();
       }
+    }
+
+    async function loadAdminKPIs() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/analytics`);
+        if (res.ok) {
+          const data = await res.json();
+          renderAdminKPIs(data);
+        }
+      } catch (err) {
+        console.log("Could not load live analytics from API:", err);
+      }
+    }
+
+    function renderAdminKPIs(data) {
+      if (!data) return;
+
+      if (document.getElementById('kpiGtCr')) document.getElementById('kpiGtCr').innerText = `${data.golden_triangle.cr}%`;
+      if (document.getElementById('kpiGtAov')) document.getElementById('kpiGtAov').innerText = `${data.golden_triangle.aov.toLocaleString()} ر.ي`;
+      if (document.getElementById('kpiGtRepeat')) document.getElementById('kpiGtRepeat').innerText = `${data.golden_triangle.repeat_rate}%`;
+      if (document.getElementById('kpiGtScore')) document.getElementById('kpiGtScore').innerText = `${data.golden_triangle.score.toLocaleString()}`;
+
+      if (document.getElementById('kpiCac')) document.getElementById('kpiCac').innerText = `${data.marketing.cac.toLocaleString()} ر.ي`;
+      if (document.getElementById('kpiCtr')) document.getElementById('kpiCtr').innerText = `${data.marketing.ctr}%`;
+      if (document.getElementById('kpiVisitors')) document.getElementById('kpiVisitors').innerText = `${data.marketing.total_visitors.toLocaleString()} زيارة`;
+
+      if (document.getElementById('kpiCr')) document.getElementById('kpiCr').innerText = `${data.sales_conversion.conversion_rate}%`;
+      if (document.getElementById('kpiCartAbandon')) document.getElementById('kpiCartAbandon').innerText = `${data.sales_conversion.cart_abandonment_rate}%`;
+      if (document.getElementById('kpiAov')) document.getElementById('kpiAov').innerText = `${data.sales_conversion.aov.toLocaleString()} ر.ي`;
+
+      if (document.getElementById('kpiGrossRevenue')) document.getElementById('kpiGrossRevenue').innerText = `${data.finance.gross_revenue.toLocaleString()} ر.ي`;
+      if (document.getElementById('kpiGrossMarginRate')) document.getElementById('kpiGrossMarginRate').innerText = `${data.finance.gross_margin_rate}% (${data.finance.gross_margin_amount.toLocaleString()} ر.ي)`;
+      if (document.getElementById('kpiReturnRate')) document.getElementById('kpiReturnRate').innerText = `${data.finance.return_rate}%`;
+
+      if (document.getElementById('kpiClv')) document.getElementById('kpiClv').innerText = `${data.retention.clv.toLocaleString()} ر.ي`;
+      if (document.getElementById('kpiRepeatRate')) document.getElementById('kpiRepeatRate').innerText = `${data.retention.repeat_purchase_rate}%`;
+      if (document.getElementById('kpiUniqueCust')) document.getElementById('kpiUniqueCust').innerText = `${data.retention.unique_customers} عملاء (${data.retention.repeat_customers} مكررين)`;
+
+      if (document.getElementById('kpiTurnover')) document.getElementById('kpiTurnover').innerText = `${data.operations.inventory_turnover}% (${data.operations.total_sold_units} قطعة مباعة)`;
+      if (document.getElementById('kpiStockRemaining')) document.getElementById('kpiStockRemaining').innerText = `${data.operations.total_current_stock.toLocaleString()} قطعة`;
+      if (document.getElementById('kpiFulfillmentTime')) document.getElementById('kpiFulfillmentTime').innerText = `${data.operations.avg_fulfillment_hours} ساعة`;
     }
 
     function initAdminUI() {
@@ -492,6 +677,7 @@
 
       loadAdminProducts();
       loadAdminOrders();
+      loadAdminKPIs();
     }
 
     document.addEventListener("DOMContentLoaded", initAdminUI);
