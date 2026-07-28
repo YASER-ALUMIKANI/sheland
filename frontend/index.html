@@ -312,9 +312,11 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
         <!-- Modal Gallery -->
         <div>
-          <div style="width: 100%; aspect-ratio: 4/5; border-radius: var(--radius-md); overflow: hidden; background: #F0F0F0; margin-bottom: 12px;">
+          <div style="width: 100%; aspect-ratio: 4/5; border-radius: var(--radius-md); overflow: hidden; background: #F0F0F0; margin-bottom: 8px;">
             <img id="modalProductImg" src="" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
+          <!-- Multiple Images Gallery Thumbnails Carousel -->
+          <div id="modalGalleryThumbs" style="display: flex; gap: 6px; justify-content: center; overflow-x: auto; padding-bottom: 4px;"></div>
         </div>
 
         <!-- Modal Info -->
@@ -357,6 +359,7 @@
           <div style="display: flex; gap: 10px; margin-top: 16px; margin-bottom: 16px; flex-wrap: wrap;">
             <button onclick="addModalItemToCart()" style="flex: 1; background: var(--accent); color: var(--primary-dark); font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px;">🛒 أضف إلى السلة</button>
             <button onclick="buyNowFromModal()" style="flex: 1; background: var(--primary); color: white; font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px;">⚡ اشترِ الآن</button>
+            <button onclick="shareProduct()" style="padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 700; border-radius: var(--radius-md); font-size: 14px;" title="مشاركة المنتج">🔗 مشاركة</button>
             <button onclick="orderViaWhatsAppModal()" style="flex: 1; min-width: 100%; background: #25D366; color: white; font-weight: 800; padding: 12px; border-radius: var(--radius-md); font-size: 14px; margin-top: 4px;">💬 طلب مباشر عبر الواتساب</button>
           </div>
 
@@ -569,8 +572,12 @@
       <div id="checkoutSuccess" style="display: none; text-align: center; padding: 20px;">
         <div style="font-size: 60px; color: var(--success); margin-bottom: 10px;">🎉</div>
         <h2 style="font-weight: 900; color: var(--success); margin-bottom: 8px;">تم تأكيد طلبك بنجاح!</h2>
-        <p style="font-size: 15px; color: var(--muted-text); margin-bottom: 16px;">رقم الطلب الخاص بك هو: <strong id="placedOrderNum" style="color: var(--primary-dark);">ORD-88219A</strong></p>
-        <p style="font-size: 14px; margin-bottom: 24px;">سيتم التواصل معك عبر الواتساب والجوال لتتبع الشحنة فور جهوزيتها.</p>
+        <p style="font-size: 15px; color: var(--muted-text); margin-bottom: 16px;">رقم الطلب الخاص بك هو: <strong id="placedOrderNum" style="color: var(--primary-dark); font-size: 18px;">ORD-88219A</strong></p>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+          <button onclick="trackPlacedOrderWhatsApp()" style="background: #25D366; color: white; border: none; padding: 10px 18px; border-radius: var(--radius-md); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+            <span>📱 تتبع الشحنة عبر الواتساب</span>
+          </button>
+        </div>
         <button onclick="closeCheckoutModal()" style="background: var(--primary); color: white; padding: 10px 24px; border-radius: var(--radius-full); font-weight: 700;">العودة للتسوق</button>
       </div>
     </div>
@@ -733,6 +740,28 @@
       <span>حسابي</span>
     </a>
   </nav>
+
+  <!-- Customer Account Dashboard Modal -->
+  <div class="modal-overlay" id="accountModal">
+    <div class="modal-card" style="max-width: 600px;">
+      <span class="modal-close-btn" onclick="closeAccountModal()">✕</span>
+      <h2 style="font-weight: 900; color: var(--primary-dark); margin-bottom: 14px;">👤 حسابي الشخصي ومتابعة الطلبات</h2>
+      
+      <div style="background: var(--accent); padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+        <div style="font-weight: 800; color: var(--primary-dark);">مرحباً بك عزيزي العميل 👋</div>
+        <div>تابع طلباتك وسجل التبضع وشحناتك المسجلة مباشرة لدى شي لاند.</div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 10px; color: var(--text);">📦 سوابق طلباتك ورقم التتبع</h3>
+        <div id="customerAccountOrdersList" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+
+      <button onclick="closeAccountModal()" style="width: 100%; background: var(--primary); color: white; padding: 10px; border-radius: var(--radius-md); font-weight: 700;">إغلاق النافذة</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

@@ -212,6 +212,56 @@
       </div>
     </div>
 
+    <!-- Sales Analytics & Status Breakdown Visual Card (Item 20) -->
+    <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-top: 20px; margin-bottom: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+      <h3 style="font-size: 16px; font-weight: 800; color: var(--primary-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+        <span>📊 تحليلات مبيعات المنصة وتوزيع الطلبات</span>
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <!-- Status Progress Bars -->
+        <div>
+          <div style="font-size: 13px; font-weight: 700; color: #555; margin-bottom: 10px;">توزيع حالات طلبات العملاء:</div>
+          <div style="margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
+              <span>🟡 قيد المعالجة والتجهيز</span>
+              <span id="statProcessingPercent">50%</span>
+            </div>
+            <div style="background:#F0F0F0; height:8px; border-radius:4px; overflow:hidden;">
+              <div id="barProcessing" style="background:#FF9800; width:50%; height:100%; border-radius:4px; transition: width 0.5s;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
+              <span>🚚 تم الشحن وفي الطريق</span>
+              <span id="statShippedPercent">30%</span>
+            </div>
+            <div style="background:#F0F0F0; height:8px; border-radius:4px; overflow:hidden;">
+              <div id="barShipped" style="background:#2196F3; width:30%; height:100%; border-radius:4px; transition: width 0.5s;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
+              <span>✔️ مكتمل وتم التسليم</span>
+              <span id="statDeliveredPercent">20%</span>
+            </div>
+            <div style="background:#F0F0F0; height:8px; border-radius:4px; overflow:hidden;">
+              <div id="barDelivered" style="background:#4CAF50; width:20%; height:100%; border-radius:4px; transition: width 0.5s;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Selling Category & AOV -->
+        <div style="background: var(--accent); padding: 14px; border-radius: 8px; border: 1px solid rgba(139,44,124,0.15);">
+          <div style="font-size: 13px; font-weight: 800; color: var(--primary-dark); margin-bottom: 8px;">🔥 مؤشرات الأداء والأكثر طلباً</div>
+          <div style="font-size: 13px; color: var(--text); line-height: 1.7;">
+            • <b>أكثر الأماكن طلباً:</b> مدينة البيضاء (توصيل مباشر 🚚)<br>
+            • <b>الفئات الأكثر مبيعاً:</b> الإكسسوارات، الساعات، الإلكترونيات<br>
+            • <b>متوسط قيمة الطلب (AOV):</b> <b id="statAvgOrderVal" style="color: var(--primary-dark);">18,500 ر.ي</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- Admin Navigation Tabs -->
     <div class="admin-tabs">
@@ -605,6 +655,29 @@
           </tr>
         `;
       }).join('');
+
+      // Calculate order status distribution percentages dynamically
+      const totalCount = orders.length || 1;
+      const procCount = orders.filter(o => !o.status || o.status.includes('معالجة') || o.status.includes('تجهيز') || o.status === 'pending' || o.status === 'processing').length;
+      const shipCount = orders.filter(o => o.status && (o.status.includes('شحن') || o.status === 'shipped')).length;
+      const compCount = orders.filter(o => o.status && (o.status.includes('مكتمل') || o.status === 'completed')).length;
+
+      const pProc = Math.round((procCount / totalCount) * 100);
+      const pShip = Math.round((shipCount / totalCount) * 100);
+      const pComp = Math.round((compCount / totalCount) * 100);
+
+      if (document.getElementById('statProcessingPercent')) document.getElementById('statProcessingPercent').innerText = `${pProc}%`;
+      if (document.getElementById('barProcessing')) document.getElementById('barProcessing').style.width = `${pProc}%`;
+
+      if (document.getElementById('statShippedPercent')) document.getElementById('statShippedPercent').innerText = `${pShip}%`;
+      if (document.getElementById('barShipped')) document.getElementById('barShipped').style.width = `${pShip}%`;
+
+      if (document.getElementById('statDeliveredPercent')) document.getElementById('statDeliveredPercent').innerText = `${pComp}%`;
+      if (document.getElementById('barDelivered')) document.getElementById('barDelivered').style.width = `${pComp}%`;
+
+      const avg = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0) / totalCount;
+      if (document.getElementById('statAvgOrderVal')) document.getElementById('statAvgOrderVal').innerText = `${avg.toFixed(0)} ر.ي`;
+    }
     }
 
 

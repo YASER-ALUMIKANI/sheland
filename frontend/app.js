@@ -904,8 +904,16 @@ async function submitOrderProcess() {
     });
     if (res.ok) {
       const orderData = await res.json();
-      document.getElementById('placedOrderNum').innerText = orderData.order_number;
+      const num = orderData.order_number;
+      document.getElementById('placedOrderNum').innerText = num;
+      
+      // Save order to customer account history
+      const prevOrders = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
+      const orderTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      prevOrders.unshift({ number: num, date: new Date().toISOString(), status: 'قيد المعالجة', total: orderTotal });
+      localStorage.setItem('sheland_user_orders', JSON.stringify(prevOrders));
     } else {
+
       // ponytail: display the exact stock error from the backend — do NOT fake order number
       const errData = await res.json().catch(() => ({}));
       const errMsg = errData.detail || 'حدث خطأ أثناء إنشاء الطلب';
@@ -978,16 +986,89 @@ async function handleVendorAddProduct(e) {
   showToast("🎉 تم نشر منتجك بنجاح على منصة Sheland!", 'success');
 }
 
+// Customer Account & History Drawer Functions (Item 14)
 function openAccountModal() {
-  showToast("مرحباً بك في Sheland! يمكنك إدارة طلباتك السابقة وعناوين الشحن من هنا.", 'info');
+  const modal = document.getElementById('accountModal');
+  const container = document.getElementById('customerAccountOrdersList');
+  if (!modal || !container) return;
+
+  const ordersHistory = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
+  if (ordersHistory.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 20px; color:#888; font-size:13px;">
+        <div style="font-size:30px; margin-bottom:6px;">📦</div>
+        لم يتم تسجيل أي طلبات سابقة على هذا الجهاز حتى الآن.
+      </div>
+    `;
+  } else {
+    container.innerHTML = ordersHistory.map(o => `
+      <div style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: white;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 13px;">
+          <span>رقم الطلب: ${escapeHTML(o.number)}</span>
+          <span style="color: var(--success); background: #E8F5E9; padding: 2px 8px; border-radius: 4px;">${escapeHTML(o.status || 'قيد المعالجة')}</span>
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">التاريخ: ${new Date(o.date).toLocaleDateString('ar-EG')} | الإجمالي: <b>${formatPrice(o.total)}</b></div>
+        <button onclick="closeAccountModal(); document.getElementById('trackOrderNumInput').value='${o.number}'; openTrackModal(); executeTrackOrder();" style="margin-top: 8px; background: var(--accent); color: var(--primary-dark); border: none; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; cursor: pointer;">
+          📍 تتبع حالة هذا الطلب
+        </button>
+      </div>
+    `).join('');
+  }
+
+  modal.classList.add('active');
 }
 
+function closeAccountModal() {
+  const modal = document.getElementById('accountModal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Product Web Share API (Item 18)
+function shareProduct() {
+  if (!currentModalProduct) return;
+  const title = currentModalProduct.title_ar;
+  const text = `تسوّق الآن "${title}" بأسعار منخفضة وشحن مجاني في اليمن على منصة شي لاند 🛍️`;
+  const url = window.location.href;
+
+  if (navigator.share) {
+    navigator.share({ title, text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(`${title} - ${url}`).then(() => {
+      showToast("تم نسخ رابط المنتج بنجاح!", 'success', '🔗');
+    }).catch(() => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+    });
+  }
+}
+
+// Track Placed Order WhatsApp Link (Item 16)
+function trackPlacedOrderWhatsApp() {
+  const numElem = document.getElementById('placedOrderNum');
+  const num = numElem ? numElem.innerText.trim() : 'ORD-LATEST';
+  const text = encodeURIComponent(`مرحباً منصة شي لاند 👋%0Aأود تتبع حالة الطلب رقم: *${num}*`);
+  window.open(`https://wa.me/9677739225378?text=${text}`, '_blank');
+}
+
+// Web Push Notification Permission Request (Item 13)
+function initPushNotifications() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(() => {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          showToast("تم تفعيل إشعارات العروض اليومية بنجاح!", 'success', '🔔');
+        }
+      });
+    }, 4000);
+  }
+}
 
 // Flash Deals Countdown Timer
 function startCountdownTimer() {
+  initPushNotifications();
   let seconds = 4 * 3600 + 18 * 60 + 29;
   const timerElem = document.getElementById('dealTimer');
   if (!timerElem) return;
+
 
   setInterval(() => {
     seconds--;
