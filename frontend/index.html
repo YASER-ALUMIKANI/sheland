@@ -20,18 +20,19 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-bar">
-    <div class="container">
-      <span>🚚 الشحن والتوصيل مباشر إلى <b>مدينة البيضاء</b> وكافة المحافظات اليمنية | 📦 الدفع عند الاستلام متوفر</span>
-        <button id="pwaInstallBtn" onclick="installPWAApp()" class="pwa-install-btn">
+    <div class="container top-bar-flex">
+      <div class="top-bar-notice">
+        <span>🚚 الشحن والتوصيل مباشر إلى <b>مدينة البيضاء</b> وكافة المحافظات اليمنية | 📦 الدفع عند الاستلام</span>
+      </div>
+      <div class="top-bar-links">
+        <button id="pwaInstallBtn" onclick="installPWAApp()" class="pwa-install-btn" style="display: none;">
           📱 تثبيت التطبيق
         </button>
-        <button onclick="toggleDarkTheme()" id="themeToggleBtn" style="background: none; border: none; color: var(--accent-gold); font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit;">🌙 الوضع الليلي</button>
-        <span style="background: rgba(255,255,255,0.2); color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🇾🇪 YER (الريال اليمني)</span>
-        <a href="#trackModal" onclick="openTrackModal()">📦 تتبع طلبك</a>
-        <a href="/vendor" target="_blank" style="color: var(--accent-gold); font-weight: 700;">🛍️ بوابة البائعين</a>
-
+        <button onclick="toggleDarkTheme()" id="themeToggleBtn" class="top-bar-btn">🌙 الوضع الليلي</button>
+        <span class="currency-tag">🇾🇪 YER</span>
+        <a href="#trackModal" onclick="openTrackModal()" class="top-bar-link">📦 تتبع طلبك</a>
+        <a href="/vendor" target="_blank" class="top-bar-link gold">🛍️ بوابة البائعين</a>
       </div>
-
     </div>
   </div>
 
@@ -823,6 +824,31 @@
       <button onclick="dismissPWABanner()" class="pwa-close-btn" title="إغلاق">✕</button>
     </div>
   </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="mobile-nav-item active" onclick="resetSearch()">
+      <span class="mobile-nav-icon">🏠</span>
+      <span>الرئيسية</span>
+    </a>
+    <a href="#productGridSection" class="mobile-nav-item" onclick="document.getElementById('searchInput').focus()">
+      <span class="mobile-nav-icon">🔍</span>
+      <span>البحث</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="openAccountModal()">
+      <span class="mobile-nav-icon">👤</span>
+      <span>حسابي</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="openTrackingModal()">
+      <span class="mobile-nav-icon">📍</span>
+      <span>تتبع طلبك</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="toggleCartDrawer()">
+      <span class="mobile-nav-icon">🛒</span>
+      <span class="mobile-nav-badge" id="mobileCartBadge">0</span>
+      <span>السلة</span>
+    </a>
+  </nav>
 
   <script src="app.js"></script>
 </body>

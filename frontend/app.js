@@ -785,6 +785,7 @@ function updateCartUI() {
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
   document.getElementById('cartCountBadge').innerText = totalCount;
+  if (document.getElementById('mobileCartBadge')) document.getElementById('mobileCartBadge').innerText = totalCount;
   document.getElementById('drawerCartCount').innerText = totalCount;
   document.getElementById('cartTotalVal').innerText = formatPrice(totalPrice);
 
