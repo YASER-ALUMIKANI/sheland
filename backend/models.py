@@ -62,6 +62,7 @@ class Product(Base):
     description = Column(Text, nullable=True)
     price = Column(Float, nullable=False)
     compare_at_price = Column(Float, nullable=True)
+    cost_price = Column(Float, nullable=True, default=0.0)
     currency = Column(String, default="YER")
     image_url = Column(String, nullable=False)
 

@@ -40,6 +40,7 @@ class ProductBase(BaseModel):
     description: Optional[str] = None
     price: float = Field(..., gt=0)
     compare_at_price: Optional[float] = None
+    cost_price: Optional[float] = 0.0
     currency: str = "YER"
     image_url: str
     category_id: int

@@ -33,10 +33,18 @@ def calculate_sales_conversion_kpis(valid_orders_count: int, total_orders_count:
     }
 
 def calculate_finance_kpis(valid_orders: List[models.Order], cancelled_orders_count: int, total_orders_count: int) -> Dict[str, Any]:
-    """Calculates Gross Revenue, Gross Margin, and Return/Cancellation Rate."""
+    """Calculates Gross Revenue, Gross Margin (based on product cost prices & items sold), and Return/Cancellation Rate."""
     gross_revenue = sum(o.total_amount for o in valid_orders)
-    gross_margin_rate = 38.5  # Gross profit margin percentage after COGS
-    gross_margin_amount = gross_revenue * (gross_margin_rate / 100)
+
+    total_cogs = 0.0
+    for order in valid_orders:
+        for item in order.items:
+            # ponytail: Use exact product.cost_price if set, or fallback to 60% of item price (40% profit margin)
+            product_cost = (item.product.cost_price if (item.product and item.product.cost_price and item.product.cost_price > 0) else (item.price * 0.60))
+            total_cogs += (product_cost * item.quantity)
+
+    gross_margin_amount = max(0.0, gross_revenue - total_cogs)
+    gross_margin_rate = (gross_margin_amount / gross_revenue * 100) if gross_revenue > 0 else 0.0
     return_rate = (cancelled_orders_count / total_orders_count * 100) if total_orders_count > 0 else 0.0
 
     return {
