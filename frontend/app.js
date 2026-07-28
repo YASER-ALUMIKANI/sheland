@@ -6,23 +6,23 @@ const API_BASE = window.location.origin.startsWith('http') ? `${window.location.
 
 // Local Seed Products Backup (Prices in Yemeni Rial YER)
 const LOCAL_PRODUCTS_SEED = [
-  { id: 7, category_id: 2, title_ar: "بنطال جينز عصري بقصة مريحة", price: 55.00, compare_at_price: 95.00, image_url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80", rating: 4.5, review_count: 410, free_shipping: true, cod_available: true, is_featured: false },
-  { id: 8, category_id: 2, title_ar: "سترة شتوية مقاومة للماء والرياح", price: 119.00, compare_at_price: 199.00, image_url: "https://images.unsplash.com/photo-1548883354-7622d03aca27?w=500&q=80", rating: 4.9, review_count: 780, free_shipping: true, cod_available: true, is_featured: true },
+  { id: 7, category_id: 2, title_ar: "بنطال جينز عصري بقصة مريحة", price: 14000.00, compare_at_price: 22000.00, image_url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80", rating: 4.5, review_count: 410, free_shipping: true, cod_available: true, is_featured: false, stock: 15 },
+  { id: 8, category_id: 2, title_ar: "سترة شتوية مقاومة للماء والرياح", price: 28000.00, compare_at_price: 45000.00, image_url: "https://images.unsplash.com/photo-1548883354-7622d03aca27?w=500&q=80", rating: 4.9, review_count: 780, free_shipping: true, cod_available: true, is_featured: true, stock: 12 },
 
-  { id: 9, category_id: 3, title_ar: "طقم ملابس أطفال قطني قطعتين", price: 25.00, compare_at_price: 45.00, image_url: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=500&q=80", rating: 4.7, review_count: 390, free_shipping: true, cod_available: true, is_featured: true },
-  { id: 10, category_id: 3, title_ar: "لعبة سيارة سباق ذكية بالريموت", price: 45.00, compare_at_price: 75.00, image_url: "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=500&q=80", rating: 4.6, review_count: 210, free_shipping: true, cod_available: true, is_featured: false },
+  { id: 9, category_id: 3, title_ar: "طقم ملابس أطفال قطني قطعتين", price: 6500.00, compare_at_price: 11000.00, image_url: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=500&q=80", rating: 4.7, review_count: 390, free_shipping: true, cod_available: true, is_featured: true, stock: 20 },
+  { id: 10, category_id: 3, title_ar: "لعبة سيارة سباق ذكية بالريموت", price: 11000.00, compare_at_price: 18000.00, image_url: "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=500&q=80", rating: 4.6, review_count: 210, free_shipping: true, cod_available: true, is_featured: false, stock: 10 },
 
-  { id: 11, category_id: 4, title_ar: "طقم أدوات طهي غير لاصقة 8 قطع", price: 149.00, compare_at_price: 240.00, image_url: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&q=80", rating: 4.9, review_count: 1890, free_shipping: true, cod_available: true, is_featured: true },
-  { id: 12, category_id: 4, title_ar: "ماكينة إعداد القهوة الذكية", price: 189.00, compare_at_price: 299.00, image_url: "https://images.unsplash.com/photo-1517668808822-9ebe02f2a698?w=500&q=80", rating: 4.8, review_count: 940, free_shipping: true, cod_available: true, is_featured: true },
+  { id: 11, category_id: 4, title_ar: "طقم أدوات طهي غير لاصقة 8 قطع", price: 38000.00, compare_at_price: 58000.00, image_url: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&q=80", rating: 4.9, review_count: 1890, free_shipping: true, cod_available: true, is_featured: true, stock: 8 },
+  { id: 12, category_id: 4, title_ar: "ماكينة إعداد القهوة الذكية", price: 45000.00, compare_at_price: 70000.00, image_url: "https://images.unsplash.com/photo-1517668808822-9ebe02f2a698?w=500&q=80", rating: 4.8, review_count: 940, free_shipping: true, cod_available: true, is_featured: true, stock: 5 },
 
-  { id: 13, category_id: 5, title_ar: "سيروم الهيالورونيك لنضارة البشرة", price: 35.00, compare_at_price: 60.00, image_url: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80", rating: 4.9, review_count: 2150, free_shipping: true, cod_available: true, is_featured: true },
-  { id: 14, category_id: 5, title_ar: "مجموعة أرواج مات تدوم طويلاً 6 ألوان", price: 29.00, compare_at_price: 50.00, image_url: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500&q=80", rating: 4.7, review_count: 1100, free_shipping: true, cod_available: true, is_featured: true },
+  { id: 13, category_id: 5, title_ar: "سيروم الهيالورونيك لنضارة البشرة", price: 8500.00, compare_at_price: 14000.00, image_url: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80", rating: 4.9, review_count: 2150, free_shipping: true, cod_available: true, is_featured: true, stock: 25 },
+  { id: 14, category_id: 5, title_ar: "مجموعة أرواج مات تدوم طويلاً 6 ألوان", price: 7000.00, compare_at_price: 12000.00, image_url: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500&q=80", rating: 4.7, review_count: 1100, free_shipping: true, cod_available: true, is_featured: true, stock: 18 },
 
-  { id: 15, category_id: 6, title_ar: "نظارة شمسية كلاسيكية مع حماية UV", price: 19.00, compare_at_price: 35.00, image_url: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80", rating: 4.6, review_count: 870, free_shipping: true, cod_available: true, is_featured: true },
-  { id: 16, category_id: 6, title_ar: "ساعة يد رجالية كلاسيكية من الفولاذ", price: 89.00, compare_at_price: 150.00, image_url: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500&q=80", rating: 4.8, review_count: 730, free_shipping: true, cod_available: true, is_featured: true },
+  { id: 15, category_id: 6, title_ar: "نظارة شمسية كلاسيكية مع حماية UV", price: 4800.00, compare_at_price: 8500.00, image_url: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80", rating: 4.6, review_count: 870, free_shipping: true, cod_available: true, is_featured: true, stock: 30 },
+  { id: 16, category_id: 6, title_ar: "ساعة يد رجالية كلاسيكية من الفولاذ", price: 22000.00, compare_at_price: 38000.00, image_url: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500&q=80", rating: 4.8, review_count: 730, free_shipping: true, cod_available: true, is_featured: true, stock: 15 },
 
-  { id: 17, category_id: 7, title_ar: "سماعات لاسلكية مع عزل الضوضاء", price: 69.00, compare_at_price: 119.00, image_url: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&q=80", rating: 4.8, review_count: 3120, free_shipping: true, cod_available: true, is_featured: true },
-  { id: 18, category_id: 7, title_ar: "ساعة ذكية لمتابعة اللياقة والصحة", price: 99.00, compare_at_price: 169.00, image_url: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=500&q=80", rating: 4.7, review_count: 1640, free_shipping: true, cod_available: true, is_featured: true }
+  { id: 17, category_id: 7, title_ar: "سماعات لاسلكية مع عزل الضوضاء", price: 17000.00, compare_at_price: 28000.00, image_url: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&q=80", rating: 4.8, review_count: 3120, free_shipping: true, cod_available: true, is_featured: true, stock: 22 },
+  { id: 18, category_id: 7, title_ar: "ساعة ذكية لمتابعة اللياقة والصحة", price: 24000.00, compare_at_price: 40000.00, image_url: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=500&q=80", rating: 4.7, review_count: 1640, free_shipping: true, cod_available: true, is_featured: true, stock: 14 }
 ];
 
 function calculateShippingFee(city) {
@@ -62,13 +62,13 @@ function initTheme() {
   }
 }
 
-// Order via WhatsApp Helper
+// Order via WhatsApp Helper (Official Phone: 9677739225378)
 function orderViaWhatsAppModal() {
   if (!currentModalProduct) return;
   const pName = encodeURIComponent(currentModalProduct.title_ar);
   const pPrice = currentModalProduct.price;
   const text = `مرحباً منصة شي لاند 👋%0Aأود طلب المنتج التالي إلى مدينة البيضاء:%0A📦 المنتج: ${pName}%0A💰 السعر: ${pPrice} ر.ي%0Aالرجاء تزويدي بتفاصيل التوصيل.`;
-  window.open(`https://wa.me/967770000000?text=${text}`, '_blank');
+  window.open(`https://wa.me/9677739225378?text=${text}`, '_blank');
 }
 
 // Security Helper: Escape HTML to prevent XSS attacks
@@ -138,8 +138,23 @@ document.addEventListener("DOMContentLoaded", () => {
   startCountdownTimer();
 });
 
+// Render Skeleton Loading UI before API fetch completes
+function renderSkeletonLoadingUI() {
+  const grid = document.getElementById('mainProductsGrid');
+  if (!grid) return;
+  grid.innerHTML = Array(8).fill(0).map(() => `
+    <div class="skeleton-card">
+      <div class="skeleton-box skeleton-img"></div>
+      <div class="skeleton-box skeleton-title"></div>
+      <div class="skeleton-box skeleton-price"></div>
+      <div class="skeleton-box skeleton-btn"></div>
+    </div>
+  `).join('');
+}
+
 // Fetch products from FastAPI Backend with fallback
 async function fetchProductsFromAPI() {
+  renderSkeletonLoadingUI();
   try {
     const res = await fetch(`${API_BASE}/products`);
     if (res.ok) {
@@ -239,14 +254,44 @@ function createProductCardHTML(p) {
 
 
 
-// Search and Filter Functions
+// Search and Filter Functions with Dynamic Auto-Complete
 function handleSearchInput(val) {
   const suggestionsBox = document.getElementById('searchSuggestions');
-  if (val.trim().length > 1) {
-    suggestionsBox.classList.add('active');
-  } else {
+  if (!suggestionsBox) return;
+
+  const query = val.trim().toLowerCase();
+  if (query.length < 1) {
     suggestionsBox.classList.remove('active');
+    suggestionsBox.innerHTML = '';
+    return;
   }
+
+  const matches = allProducts.filter(p =>
+    (p.title_ar && p.title_ar.toLowerCase().includes(query)) ||
+    (p.title_en && p.title_en.toLowerCase().includes(query))
+  ).slice(0, 5);
+
+  if (matches.length === 0) {
+    suggestionsBox.innerHTML = `<div style="padding: 12px; font-size: 13px; color: #888; text-align: center;">لا توجد منتجات تطابق "${escapeHTML(query)}"</div>`;
+  } else {
+    suggestionsBox.innerHTML = matches.map(p => `
+      <div class="suggestion-item" onclick="selectSearchSuggestion(${p.id})">
+        <img src="${p.image_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;" alt="">
+        <div style="flex: 1;">
+          <div style="font-weight: 700; font-size: 13px;">${escapeHTML(p.title_ar)}</div>
+          <div style="font-size: 11px; color: var(--primary-dark); font-weight: 800;">${formatPrice(p.price)}</div>
+        </div>
+        <span style="font-size: 11px; color: #888;">عرض ➔</span>
+      </div>
+    `).join('');
+  }
+  suggestionsBox.classList.add('active');
+}
+
+function selectSearchSuggestion(prodId) {
+  const suggestionsBox = document.getElementById('searchSuggestions');
+  if (suggestionsBox) suggestionsBox.classList.remove('active');
+  openProductModal(prodId);
 }
 
 function selectSuggestion(text) {

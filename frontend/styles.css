@@ -421,6 +421,157 @@ input, select {
   border-radius: var(--radius-sm);
 }
 
+.hero-visual {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-image-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border: 3px solid rgba(255,255,255,0.2);
+  transform: rotate(-2deg);
+  transition: var(--transition);
+}
+
+.hero-image-card:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+
+.hero-img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-floating-badge {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(8px);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #222;
+}
+
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.skeleton-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-box {
+  background: linear-gradient(90deg, #F0F0F0 25%, #E8E8E8 50%, #F0F0F0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.dark-theme .skeleton-box {
+  background: linear-gradient(90deg, #2A2A2A 25%, #353535 50%, #2A2A2A 75%);
+}
+
+.skeleton-img { width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); }
+.skeleton-title { height: 16px; width: 80%; }
+.skeleton-price { height: 18px; width: 40%; }
+.skeleton-btn { height: 36px; width: 100%; border-radius: var(--radius-sm); }
+
+/* Multi-column Rich Footer */
+.rich-footer {
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  padding: 45px 0 100px;
+  margin-top: 60px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 30px;
+  margin-bottom: 35px;
+}
+
+.footer-col-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  margin-bottom: 14px;
+  position: relative;
+  padding-bottom: 6px;
+}
+
+.footer-col-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 35px;
+  height: 3px;
+  background: var(--accent-gold);
+  border-radius: 2px;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.footer-links a {
+  color: var(--muted-text);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+  transform: translateX(-4px);
+}
+
+.footer-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .hero-visual { display: none; }
+  .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+
 /* ==========================================================================
    Visual Category Cards
    ========================================================================== */

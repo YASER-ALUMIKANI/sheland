@@ -160,6 +160,18 @@
             <div class="hero-badge-item">✓ إرجاع مجاني خلال 14 يوماً</div>
           </div>
         </div>
+        <div class="hero-visual">
+          <div class="hero-image-card">
+            <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80" alt="تسوق شي لاند" class="hero-img">
+            <div class="hero-floating-badge">
+              <span style="font-size: 22px;">⚡</span>
+              <div>
+                <div style="font-size:10px; color:#666; font-weight:700;">توصيل مباشر وشريع</div>
+                <div style="font-size:12px; font-weight:800; color:var(--primary-dark);">مدينة البيضاء والمحافظات</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -630,13 +642,69 @@
     </div>
   </div>
 
-  <!-- Main Footer -->
-  <footer style="background: var(--surface); border-top: 1px solid var(--border); padding: 30px 0 100px; margin-top: 50px; text-align: center;">
+  <!-- Main Rich Footer -->
+  <footer class="rich-footer">
     <div class="container">
-      <div style="font-weight: 800; font-size: 18px; color: var(--primary); margin-bottom: 8px;">🛍️ Sheland | سوق شي لاند الإلكتروني</div>
-      <p style="font-size: 13px; color: var(--muted-text); margin-bottom: 16px;">السوق الإلكتروني الشامل بأسعار منخفضة جداً وتوصيل مباشر إلى مدينة البيضاء وكافة المحافظات اليمنية.</p>
-      <div style="font-size: 13px; color: var(--muted-text); border-top: 1px solid var(--border); padding-top: 16px;">
-        جميع الحقوق محفوظة © 2026 Sheland | تم التطوير لـ <b>شي لاند</b> بواسطة <a href="https://www.linkedin.com/in/yaser-alhumikani-412042319" target="_blank" style="color: var(--primary-dark); font-weight: 800; text-decoration: underline;">Y-TECHNO (واي تكنو)</a>
+      <div class="footer-grid">
+        <!-- Col 1: Brand Info -->
+        <div>
+          <div style="font-weight: 900; font-size: 20px; color: var(--primary); margin-bottom: 10px;">🛍️ Sheland | شي لاند</div>
+          <p style="font-size: 13px; color: var(--muted-text); line-height: 1.6; margin-bottom: 16px;">
+            المنصة الأولى للتسوق الرقمي الشامل بأسعار تنافسية منخفضة جداً مع خدمات التوصيل السريع والدفع عند الاستلام في اليمن.
+          </p>
+          <div style="display: flex; gap: 10px; font-size: 12px; font-weight: 700;">
+            <span style="background: var(--accent); color: var(--primary-dark); padding: 4px 10px; border-radius: 20px;">🇾🇪 خدمة المحافظات</span>
+            <span style="background: #E8F5E9; color: var(--success); padding: 4px 10px; border-radius: 20px;">💵 دفع عند الاستلام</span>
+          </div>
+        </div>
+
+        <!-- Col 2: Quick Links -->
+        <div>
+          <h3 class="footer-col-title">روابط سريعة</h3>
+          <ul class="footer-links">
+            <li><a href="#" onclick="filterByCategory(null)">🏠 الصفحة الرئيسية</a></li>
+            <li><a href="#productGridSection">🛒 كافة المنتجات</a></li>
+            <li><a href="#flashDealsSection">🔥 عروض الخصم السريع</a></li>
+            <li><a href="#trackModal" onclick="openTrackModal()">📦 تتبع شحنتك</a></li>
+            <li><a href="/vendor" target="_blank">🛍️ بوابة البائعين والمعارض</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Shipping Cities -->
+        <div>
+          <h3 class="footer-col-title">مناطق التوصيل والشحن</h3>
+          <ul class="footer-links">
+            <li><a href="#">📍 مدينة البيضاء (توصيل مجاني 🚚)</a></li>
+            <li><a href="#">📍 صنعاء وأمانة العاصمة</a></li>
+            <li><a href="#">📍 عدن ولحج وشبوة</a></li>
+            <li><a href="#">📍 تعز وإب وذمار</a></li>
+            <li><a href="#">📍 حضرموت والمكلا ومأرب</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Contact & Support -->
+        <div>
+          <h3 class="footer-col-title">الدعم والتواصل المباشر</h3>
+          <div class="footer-contact-item">
+            <span>💬</span>
+            <span>واتساب خدمة العملاء: <b>0739225378</b></span>
+          </div>
+          <div class="footer-contact-item">
+            <span>📍</span>
+            <span>المقر الرئيسي: مدينة البيضاء - اليمن</span>
+          </div>
+          <div class="footer-contact-item">
+            <span>🛡️</span>
+            <span>ضمان الجودة والإرجاع المجاني خلال 7 أيام</span>
+          </div>
+          <button onclick="window.open('https://wa.me/9677739225378?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D9%85%D9%86%D8%B5%D8%A9%20%D8%B4%D9%8A%20%D9%84%D8%A7%D9%86%D8%AF%20%F0%9F%90%8B', '_blank')" style="background: #25D366; color: white; border: none; font-weight: 800; padding: 10px 16px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; margin-top: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>💬 تواصل عبر الواتساب فوراً</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="font-size: 13px; color: var(--muted-text); border-top: 1px solid var(--border); padding-top: 20px; text-align: center;">
+        جميع الحقوق محفوظة © 2026 Sheland Marketplace | تم التطوير بواسطة <a href="https://www.linkedin.com/in/yaser-alhumikani-412042319" target="_blank" style="color: var(--primary-dark); font-weight: 800; text-decoration: underline;">Y-TECHNO (واي تكنو)</a>
       </div>
     </div>
   </footer>
