@@ -782,7 +782,25 @@
 بلد المنشأ: اليمن
 تعليمات التسليم: التواصل قبل التسليم | التسليم للمستلم فقط | قابل للكسر / يحفظ جافًا`.trim();
 
-      const qrSvgTag = (typeof QRCodeLib !== 'undefined') ? QRCodeLib.generateSVG(qrTextPayload, 4) : `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrTextPayload)}" style="width:160px;height:160px;">`;
+      let qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTextPayload)}`;
+
+      if (typeof QRCode !== 'undefined') {
+        try {
+          const tempDiv = document.createElement('div');
+          const qrObj = new QRCode(tempDiv, {
+            text: qrTextPayload,
+            width: 220,
+            height: 220,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          const canvas = tempDiv.querySelector('canvas');
+          if (canvas) {
+            qrImgSrc = canvas.toDataURL('image/png');
+          }
+        } catch (e) {
+          console.log("QRCode Canvas generation error:", e);
+        }
+      }
 
       const printWin = window.open('', '', 'width=850,height=900');
       printWin.document.write(`
@@ -900,7 +918,7 @@
               </div>
             </div>
 
-            <!-- رقم التتبع والباركود ورمز QR الشامل أوفلاين -->
+            <!-- رقم التتبع والباركود ورمز QR الشامل القياسي -->
             <div class="barcode-section">
               <div style="font-size: 14px; font-weight: 900; color: #1E1B2E; margin-bottom: 4px;">رقم التتبع بخط واضح:</div>
               <div class="tracking-code">${orderNum}</div>
@@ -912,13 +930,11 @@
                   <div class="barcode-box">*${orderNum}*</div>
                 </div>
 
-                <!-- رمز QR الشامل المحلي أوفلاين -->
+                <!-- رمز QR الشامل القياسي ISO 18004 -->
                 <div style="text-align: center; background: #FAF5FF; border: 1.5px solid #8B2C7C; padding: 12px 18px; border-radius: 10px;">
-                  <div style="font-size: 12px; font-weight: 900; color: #8B2C7C; margin-bottom: 6px;">📱 رمز QR محلي (Offline 100%) يحوي كامل البيانات</div>
-                  <div style="width: 160px; height: 160px; border: 2px solid #1E1B2E; border-radius: 6px; padding: 4px; background: #FFF; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                    ${qrSvgTag}
-                  </div>
-                  <div style="font-size: 10px; font-weight: 700; color: #475569; margin-top: 4px;">امسح بالكاميرا لاستعراض بيانات الملصق كاملة أوفلاين</div>
+                  <div style="font-size: 12px; font-weight: 900; color: #8B2C7C; margin-bottom: 6px;">📱 رمز QR القياسي التوافقية الشاملة</div>
+                  <img src="${qrImgSrc}" alt="QR Code Full Data" style="width: 170px; height: 170px; border: 2px solid #1E1B2E; border-radius: 6px; padding: 4px; background: #FFF;">
+                  <div style="font-size: 10px; font-weight: 700; color: #475569; margin-top: 4px;">امسح بالكاميرا لاستعراض كافة بيانات الملصق</div>
                 </div>
               </div>
 
@@ -930,6 +946,7 @@
       `);
       printWin.document.close();
     }
+
 
 
 
