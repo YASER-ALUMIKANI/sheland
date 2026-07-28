@@ -174,14 +174,16 @@ def get_products(
     else:
         query = query.order_by(models.Product.is_featured.desc(), models.Product.id.desc())
 
-    return query.all()
+    products = query.all()
+    return [schemas.ProductResponse.from_orm_with_stock(p) for p in products]
+
 
 @app.get("/api/products/{product_id}", response_model=schemas.ProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return product
+    return schemas.ProductResponse.from_orm_with_stock(product)
 
 @app.post("/api/products", response_model=schemas.ProductResponse)
 def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db)):
@@ -226,7 +228,7 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
 
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return schemas.ProductResponse.from_orm_with_stock(db_product)
 
 @app.put("/api/products/{product_id}", response_model=schemas.ProductResponse)
 def update_product(product_id: int, product_in: schemas.ProductCreate, db: Session = Depends(get_db)):
@@ -253,7 +255,7 @@ def update_product(product_id: int, product_in: schemas.ProductCreate, db: Sessi
 
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return schemas.ProductResponse.from_orm_with_stock(db_product)
 
 
 @app.delete("/api/products/{product_id}")
@@ -316,22 +318,24 @@ def track_order(order_number: str, db: Session = Depends(get_db)):
 
 @app.post("/api/orders", response_model=schemas.OrderResponse)
 def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
-    # ponytail: Stock validation pass — reject the whole order if any item exceeds available stock
+    # ponytail: Stock validation pass — check exact total available stock across variants
     stock_errors = []
     for item in order_in.items:
         prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not prod:
             raise HTTPException(status_code=404, detail=f"المنتج {item.product_id} غير موجود")
-        variant = (
-            db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
-            if item.variant_id else
-            db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).first()
-        )
-        available = variant.stock if variant else 0
+        
+        if item.variant_id:
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+            available = variant.stock if variant else 0
+        else:
+            available = prod.stock  # computed total stock across all variants
+
         if item.quantity > available:
             stock_errors.append(
                 f"المنتج «{prod.title_ar}»: طلبت {item.quantity} قطعة، المتوفر {available} فقط."
             )
+
     if stock_errors:
         raise HTTPException(
             status_code=422,
@@ -366,14 +370,21 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
                 quantity=item.quantity
             )
             db.add(db_item)
-            # Deduct stock from the variant immediately after order confirmation
-            variant = (
-                db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
-                if item.variant_id else
-                db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).first()
-            )
-            if variant:
-                variant.stock = max(0, variant.stock - item.quantity)
+
+            # Deduct stock sequentially from product variants
+            remaining_to_deduct = item.quantity
+            if item.variant_id:
+                variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+                if variant:
+                    variant.stock = max(0, variant.stock - remaining_to_deduct)
+            else:
+                variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).all()
+                for v in variants:
+                    if remaining_to_deduct <= 0:
+                        break
+                    deduct = min(v.stock, remaining_to_deduct)
+                    v.stock -= deduct
+                    remaining_to_deduct -= deduct
 
     db_order.total_amount = round(total, 2)
     db.commit()

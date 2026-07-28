@@ -45,7 +45,6 @@ class ProductBase(BaseModel):
     category_id: int
 
     seller_id: int = 1
-    stock: Optional[int] = 10
     free_shipping: bool = True
     cod_available: bool = True
 
@@ -58,8 +57,19 @@ class ProductResponse(ProductBase):
     rating: float
     review_count: int
     is_featured: bool
-    stock: Optional[int] = 0   # ponytail: total stock from first variant, for frontend display
+    stock: int = 0
     variants: List[VariantResponse] = []
+
+    @classmethod
+    def from_orm_with_stock(cls, product):
+        # ponytail: compute stock from variants, bypassing Pydantic's ProductBase.stock default
+        d = {c.key: getattr(product, c.key) for c in product.__table__.columns}
+        d['stock'] = sum(v.stock for v in product.variants) if product.variants else 0
+        d['variants'] = [VariantResponse.model_validate(v) for v in product.variants]
+        d['rating'] = product.rating
+        d['review_count'] = product.review_count
+        d['is_featured'] = product.is_featured
+        return cls.model_validate(d)
 
     class Config:
         from_attributes = True

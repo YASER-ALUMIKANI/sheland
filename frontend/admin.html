@@ -537,7 +537,7 @@
       let lowStockCount = 0;
 
       tbody.innerHTML = prods.map(p => {
-        const stockVal = (p.variants && p.variants.length > 0) ? p.variants[0].stock : (p.id % 7 + 2);
+        const stockVal = (p.stock !== undefined) ? p.stock : ((p.variants && p.variants.length > 0) ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0);
         if (stockVal < 5) lowStockCount++;
 
         return `
