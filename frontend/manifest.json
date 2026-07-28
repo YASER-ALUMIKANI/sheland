@@ -2,7 +2,7 @@
   "name": "Sheland Marketplace | سوق شي لاند الإلكتروني",
   "short_name": "Sheland",
   "description": "السوق الإلكتروني الشامل بأسعار منخفضة وشحن مباشر إلى كافة المحافظات اليمنية.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "id": "/",
   "display": "standalone",
