@@ -133,6 +133,11 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
 
+    @property
+    def product_title(self):
+        return self.product.title_ar if self.product else "منتج شي لاند"
+
+
 class Review(Base):
     __tablename__ = "reviews"
 

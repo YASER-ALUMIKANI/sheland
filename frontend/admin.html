@@ -395,10 +395,11 @@
     ];
 
     const FALLBACK_ADMIN_ORDERS = [
-      { id: 1, order_number: "ORD-94A21F", customer_name: "ياسر العبدلي", phone: "+967 771234567", shipping_address: "مدينة البيضاء - الشارع العام", payment_method: "COD", total_amount: 14900, status: "قيد المعالجة", created_at: new Date().toISOString() },
-      { id: 2, order_number: "ORD-88219A", customer_name: "أحمد الحميقاني", phone: "+967 733456789", shipping_address: "مدينة البيضاء - حارة الروضة", payment_method: "COD", total_amount: 28900, status: "تم الشحن", created_at: new Date().toISOString() },
-      { id: 3, order_number: "ORD-51782B", customer_name: "عميل شي لاند", phone: "+967 770000000", shipping_address: "صنعاء - حدة", payment_method: "COD", total_amount: 12500, status: "مكتمل", created_at: new Date().toISOString() }
+      { id: 1, order_number: "ORD-94A21F", customer_name: "ياسر العبدلي", phone: "+967 771234567", shipping_address: "مدينة البيضاء - الشارع العام", payment_method: "COD", total_amount: 14900, status: "قيد المعالجة", created_at: new Date().toISOString(), items: [{ product_title: "عباية سوداء فاخرة مع تطريز حرير", quantity: 1, price: 14900 }] },
+      { id: 2, order_number: "ORD-88219A", customer_name: "أحمد الحميقاني", phone: "+967 733456789", shipping_address: "مدينة البيضاء - حارة الروضة", payment_method: "COD", total_amount: 28900, status: "تم الشحن", created_at: new Date().toISOString(), items: [{ product_title: "طقم أواني طبخ سيراميك 12 قطعة", quantity: 1, price: 28900 }] },
+      { id: 3, order_number: "ORD-51782B", customer_name: "عميل شي لاند", phone: "+967 770000000", shipping_address: "صنعاء - حدة", payment_method: "COD", total_amount: 12500, status: "مكتمل", created_at: new Date().toISOString(), items: [{ product_title: "فستان سهرة صيفي أنيق ومميز", quantity: 1, price: 12500 }] }
     ];
+
 
     let adminProducts = [...FALLBACK_ADMIN_PRODUCTS];
     let adminOrders = [...FALLBACK_ADMIN_ORDERS];
@@ -638,6 +639,26 @@
       const fullAddr = order.shipping_address || 'مدينة البيضاء';
       const phone = getCleanCustomerWhatsApp(order);
       const customerName = order.customer_name || 'عميل منصة شي لاند';
+      const itemsList = (order.items && order.items.length > 0) ? order.items : [
+
+        { product_title: `منتجات مبيعات منصة شي لاند الرسمية (طلب #${orderNum})`, quantity: 1, price: order.total_amount || 0 }
+      ];
+
+      const itemsRowsHtml = itemsList.map((item, idx) => {
+        const titleText = item.product_title || (item.product ? item.product.title_ar : null) || `منتج مبيعات شي لاند (${orderNum})`;
+        const q = item.quantity || 1;
+        const p = item.price || order.total_amount || 0;
+        const subtotal = q * p;
+        return `
+          <tr>
+            <td style="text-align: center; font-weight: 700;">${idx + 1}</td>
+            <td style="font-weight: 700; color: #1E1B2E;">${titleText}</td>
+            <td style="text-align: center; font-weight: 800;">${q}</td>
+            <td style="font-weight: 700;">${p} ر.ي</td>
+            <td style="font-weight: 900; color: #8B2C7C;">${subtotal} ر.ي</td>
+          </tr>
+        `;
+      }).join('');
 
       const printWin = window.open('', '', 'width=800,height=900');
       printWin.document.write(`
@@ -703,16 +724,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>1</td>
-                  <td>مشتريات منتجات تجزئة من منصة شي لاند (طلب #${orderNum})</td>
-                  <td>1</td>
-                  <td>${total}</td>
-                  <td>${total}</td>
-                </tr>
+                ${itemsRowsHtml}
                 <tr>
                   <td colspan="4" style="text-align: left; font-weight: 700;">رسوم الشحن والتوصيل (مدينة البيضاء / المحافظات):</td>
-                  <td>مضمون / مجاني</td>
+                  <td style="font-weight: 800; color: #10B981;">مضمون / مجاني</td>
                 </tr>
                 <tr class="total-row">
                   <td colspan="4" style="text-align: left;">إجمالي المبلغ النهائي المستحق:</td>
@@ -720,6 +735,7 @@
                 </tr>
               </tbody>
             </table>
+
 
             <div style="margin-top: 40px; border-top: 2px dashed #E2E8F0; padding-top: 15px; text-align: center; font-size: 13px; color: #64748B;">
               جميع الحقوق محفوظة © 2026 Sheland | تم التطوير لـ شي لاند بواسطة Y-TECHNO (واي تكنو)

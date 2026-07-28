@@ -77,6 +77,16 @@ class OrderCreate(BaseModel):
     payment_method: str = "COD"
     items: List[CartItemCreate]
 
+class OrderItemResponse(BaseModel):
+    id: int
+    product_id: int
+    price: float
+    quantity: int
+    product_title: Optional[str] = "منتج من منصة شي لاند"
+
+    class Config:
+        from_attributes = True
+
 class OrderResponse(BaseModel):
     id: int
     order_number: str
@@ -88,9 +98,11 @@ class OrderResponse(BaseModel):
     status: str
     total_amount: float
     created_at: datetime
+    items: List[OrderItemResponse] = []
 
     class Config:
         from_attributes = True
+
 
 class ReviewCreate(BaseModel):
     author_name: Optional[str] = "عميل شي لاند"
