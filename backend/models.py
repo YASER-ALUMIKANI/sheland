@@ -115,7 +115,12 @@ class Order(Base):
     shipping_address = Column(Text, nullable=False)
     payment_method = Column(String, nullable=False)
     payment_status = Column(String, default="paid")
+    # ponytail: Dynamic shipping parcel attributes configurable by order department staff
+    parcel_count = Column(String, default="1 من 1")
+    weight = Column(String, default="0.85 كجم")
+    dimensions = Column(String, default="25 × 15 × 10 سم")
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

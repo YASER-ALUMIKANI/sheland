@@ -14,6 +14,20 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# ponytail: Ensure SQLite schema compatibility for new parcel columns
+try:
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        for col, default_val in [("parcel_count", "'1 من 1'"), ("weight", "'0.85 كجم'"), ("dimensions", "'25 × 15 × 10 سم'")]:
+            try:
+                conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} VARCHAR DEFAULT {default_val}"))
+                conn.commit()
+            except Exception:
+                pass
+except Exception:
+    pass
+
+
 Base = declarative_base()
 
 def get_db():

@@ -48,13 +48,27 @@ app.add_middleware(
 
 @app.on_event("startup")
 def auto_seed_on_startup():
-    from .database import SessionLocal
+    from .database import SessionLocal, engine
+    # ponytail: Lightweight SQLite schema migration for parcel detail columns
+    try:
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            for col, default_val in [("parcel_count", "'1 من 1'"), ("weight", "'0.85 كجم'"), ("dimensions", "'25 × 15 × 10 سم'")]:
+                try:
+                    conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} VARCHAR DEFAULT {default_val}"))
+                    conn.commit()
+                except Exception:
+                    pass
+    except Exception as e:
+        print("Migration warning:", e)
+
     db = SessionLocal()
     try:
         if db.query(models.Product).count() == 0:
             seed_database(db)
     finally:
         db.close()
+
 
 
 # Base directory for static frontend files
@@ -267,6 +281,30 @@ def update_order_status(order_id: int, status: str = Query(...), db: Session = D
     db.commit()
     db.refresh(db_order)
     return {"status": "success", "order_id": order_id, "new_status": status}
+
+@app.put("/api/orders/{order_id}/parcel-details")
+def update_parcel_details(order_id: int, details: schemas.ParcelDetailsUpdate, db: Session = Depends(get_db)):
+    db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if details.parcel_count is not None:
+        db_order.parcel_count = details.parcel_count
+    if details.weight is not None:
+        db_order.weight = details.weight
+    if details.dimensions is not None:
+        db_order.dimensions = details.dimensions
+
+    db.commit()
+    db.refresh(db_order)
+    return {
+        "status": "success",
+        "order_id": order_id,
+        "parcel_count": db_order.parcel_count,
+        "weight": db_order.weight,
+        "dimensions": db_order.dimensions
+    }
+
 
 @app.get("/api/orders/track/{order_number}", response_model=schemas.OrderResponse)
 def track_order(order_number: str, db: Session = Depends(get_db)):

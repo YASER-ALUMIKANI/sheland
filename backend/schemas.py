@@ -87,6 +87,11 @@ class OrderItemResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ParcelDetailsUpdate(BaseModel):
+    parcel_count: Optional[str] = "1 من 1"
+    weight: Optional[str] = "0.85 كجم"
+    dimensions: Optional[str] = "25 × 15 × 10 سم"
+
 class OrderResponse(BaseModel):
     id: int
     order_number: str
@@ -97,11 +102,15 @@ class OrderResponse(BaseModel):
     payment_method: str
     status: str
     total_amount: float
+    parcel_count: Optional[str] = "1 من 1"
+    weight: Optional[str] = "0.85 كجم"
+    dimensions: Optional[str] = "25 × 15 × 10 سم"
     created_at: datetime
     items: List[OrderItemResponse] = []
 
     class Config:
         from_attributes = True
+
 
 
 class ReviewCreate(BaseModel):
