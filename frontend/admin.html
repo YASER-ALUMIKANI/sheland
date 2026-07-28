@@ -778,8 +778,6 @@
 الوزن: 0.85 كجم
 الأبعاد: 25 × 15 × 10 سم
 محتويات الطرد: منتجات مبيعات تجزئة منصة شي لاند
-القيمة المصرح بها: ${total}
-بلد المنشأ: اليمن
 تعليمات التسليم: التواصل قبل التسليم | التسليم للمستلم فقط | قابل للكسر / يحفظ جافًا`.trim();
 
       let qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTextPayload)}`;
@@ -904,19 +902,17 @@
             <div class="section-block">
               <h3 class="section-title">معلومات الطرد — PARCEL DETAILS</h3>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div class="field-row"><span class="field-key">رقم الطلب:</span><span class="field-value">${orderNum}</span></div>
                 <div class="field-row"><span class="field-key">عدد الطرود:</span><span class="field-value">1 من 1</span></div>
                 <div class="field-row"><span class="field-key">الوزن:</span><span class="field-value">0.85 كجم</span></div>
                 <div class="field-row"><span class="field-key">الأبعاد:</span><span class="field-value">25 × 15 × 10 سم</span></div>
                 <div class="field-row"><span class="field-key">محتويات الطرد:</span><span class="field-value">منتجات مبيعات من منصة شي لاند</span></div>
-                <div class="field-row"><span class="field-key">القيمة المصرح بها:</span><span class="field-value">${total}</span></div>
-                <div class="field-row"><span class="field-key">بلد المنشأ:</span><span class="field-value">اليمن</span></div>
               </div>
               <div style="margin-top: 10px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 10px; font-size: 12px;">
                 <strong>تعليمات التسليم:</strong><br>
                 📞 التواصل قبل التسليم | 👤 التسليم للمستلم فقط | ⚠️ قابل للكسر / يحفظ جافًا
               </div>
             </div>
+
 
             <!-- رقم التتبع والباركود ورمز QR الشامل القياسي -->
             <div class="barcode-section">
