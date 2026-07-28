@@ -1,22 +1,39 @@
 {
   "name": "Sheland Marketplace | سوق شي لاند الإلكتروني",
   "short_name": "Sheland",
-  "description": "السوق الإلكتروني الشامل بأسعار منخفضة وشحن مباشر إلى مدينة البيضاء وكافة المحافظات اليمنية.",
-  "start_url": "/",
+  "description": "السوق الإلكتروني الشامل بأسعار منخفضة وشحن مباشر إلى كافة المحافظات اليمنية.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#0F0C19",
   "theme_color": "#8B2C7C",
-  "orientation": "portrait",
+  "orientation": "any",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=192&q=80",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=512&q=80",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -1237,22 +1237,22 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 async function installPWAApp() {
-  if (!deferredPwaPrompt) {
-    showToast("تطبيق شي لاند مثبت بالفعل على جهازك أو أن متصفحك يتيح التثبيت من الخيارات 📲", "info", "📱");
-    return;
-  }
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+    const { outcome } = await deferredPwaPrompt.userChoice;
+    if (outcome === 'accepted') {
+      showToast("تم تثبيت تطبيق Sheland على سطح المكتب/الجهاز بنجاح! 🚀", "success", "🎉");
+    }
+    deferredPwaPrompt = null;
 
-  deferredPwaPrompt.prompt();
-  const { outcome } = await deferredPwaPrompt.userChoice;
-  if (outcome === 'accepted') {
-    showToast("تم تثبيت تطبيق Sheland على جهازك بنجاح! 🚀", "success", "🎉");
+    const pwaBtn = document.getElementById('pwaInstallBtn');
+    const pwaBanner = document.getElementById('pwaBanner');
+    if (pwaBtn) pwaBtn.style.display = 'none';
+    if (pwaBanner) pwaBanner.style.display = 'none';
+  } else {
+    // If beforeinstallprompt hasn't fired yet or already installed, instruct Chrome/Edge install icon in address bar
+    showToast("💻 لتثبيت التطبيق على سطح المكتب: انقر على زر (تثبيت التطبيق 💻) بداخل شريط عنوان المتصفح بالأعلى، أو من قائمة المتصفح ➔ (التطبيقات ➔ تثبيت Sheland).", "info", "📲");
   }
-  deferredPwaPrompt = null;
-
-  const pwaBtn = document.getElementById('pwaInstallBtn');
-  const pwaBanner = document.getElementById('pwaBanner');
-  if (pwaBtn) pwaBtn.style.display = 'none';
-  if (pwaBanner) pwaBanner.style.display = 'none';
 }
 
 function dismissPWABanner() {
