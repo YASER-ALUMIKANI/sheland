@@ -113,11 +113,31 @@ def get_qrcode_js():
 
 @app.get("/manifest.json")
 def get_manifest():
-    return FileResponse(os.path.join(FRONTEND_DIR, "manifest.json"))
+    return FileResponse(os.path.join(FRONTEND_DIR, "manifest.json"), media_type="application/manifest+json")
 
 @app.get("/sw.js")
 def get_sw():
-    return FileResponse(os.path.join(FRONTEND_DIR, "sw.js"), media_type="application/javascript")
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "sw.js"),
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
+    )
+
+@app.get("/icon-192.png")
+def get_icon192():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-192.png"), media_type="image/png")
+
+@app.get("/icon-512.png")
+def get_icon512():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-512.png"), media_type="image/png")
+
+@app.get("/icon-maskable-192.png")
+def get_iconmask192():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-maskable-192.png"), media_type="image/png")
+
+@app.get("/icon-maskable-512.png")
+def get_iconmask512():
+    return FileResponse(os.path.join(FRONTEND_DIR, "icon-maskable-512.png"), media_type="image/png")
 
 
 
