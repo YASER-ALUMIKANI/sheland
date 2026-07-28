@@ -77,6 +77,13 @@ class Product(Base):
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
 
+    @property
+    def stock(self):
+        # ponytail: aggregate total stock across all variants for quick frontend display
+        if self.variants:
+            return sum(v.stock for v in self.variants)
+        return 0
+
 class ProductVariant(Base):
     __tablename__ = "product_variants"
 

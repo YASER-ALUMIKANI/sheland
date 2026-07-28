@@ -316,9 +316,30 @@ def track_order(order_number: str, db: Session = Depends(get_db)):
 
 @app.post("/api/orders", response_model=schemas.OrderResponse)
 def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
+    # ponytail: Stock validation pass — reject the whole order if any item exceeds available stock
+    stock_errors = []
+    for item in order_in.items:
+        prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        if not prod:
+            raise HTTPException(status_code=404, detail=f"المنتج {item.product_id} غير موجود")
+        variant = (
+            db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+            if item.variant_id else
+            db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).first()
+        )
+        available = variant.stock if variant else 0
+        if item.quantity > available:
+            stock_errors.append(
+                f"المنتج «{prod.title_ar}»: طلبت {item.quantity} قطعة، المتوفر {available} فقط."
+            )
+    if stock_errors:
+        raise HTTPException(
+            status_code=422,
+            detail="لا يمكن إتمام الطلب بسبب نقص في المخزون:\n" + "\n".join(stock_errors)
+        )
+
     total = 0.0
     order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
-
     db_order = models.Order(
         order_number=order_number,
         user_id=order_in.user_id,
@@ -329,7 +350,6 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
         total_amount=total,
         status="قيد المعالجة"
     )
-
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
@@ -337,16 +357,23 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
     for item in order_in.items:
         prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if prod:
-            item_price = prod.price
-            total += item_price * item.quantity
+            total += prod.price * item.quantity
             db_item = models.OrderItem(
                 order_id=db_order.id,
                 product_id=item.product_id,
                 variant_id=item.variant_id,
-                price=item_price,
+                price=prod.price,
                 quantity=item.quantity
             )
             db.add(db_item)
+            # Deduct stock from the variant immediately after order confirmation
+            variant = (
+                db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+                if item.variant_id else
+                db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).first()
+            )
+            if variant:
+                variant.stock = max(0, variant.stock - item.quantity)
 
     db_order.total_amount = round(total, 2)
     db.commit()

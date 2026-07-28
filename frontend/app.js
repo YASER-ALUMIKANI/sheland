@@ -195,9 +195,21 @@ function createProductCardHTML(p) {
   const discountPercent = p.compare_at_price ? Math.round(((p.compare_at_price - p.price) / p.compare_at_price) * 100) : 0;
   const safeTitle = escapeHTML(p.title_ar);
   const safeImg = escapeHTML(p.image_url);
+  const stock = p.stock ?? null;
+  const outOfStock = stock !== null && stock === 0;
+  const lowStock = stock !== null && stock > 0 && stock <= 5;
+  const limitedStock = stock !== null && stock > 5 && stock <= 15;
+
+  const stockBadge = outOfStock
+    ? `<span style="position:absolute;top:8px;left:8px;background:#D83A3A;color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;z-index:3;">نفد المخزون</span>`
+    : lowStock
+    ? `<span style="position:absolute;top:8px;left:8px;background:#D83A3A;color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;z-index:3;animation:pulse 1s infinite;">⚠️ ${stock} قطع فقط!</span>`
+    : limitedStock
+    ? `<span style="position:absolute;top:8px;left:8px;background:#FF9800;color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;z-index:3;">${stock} قطعة متبقية</span>`
+    : '';
 
   return `
-    <div class="product-card" onclick="openProductModal(${p.id})">
+    <div class="product-card" onclick="${outOfStock ? '' : `openProductModal(${p.id})`}" style="${outOfStock ? 'opacity:0.6;cursor:not-allowed;' : ''}">
       <div class="product-image-wrap">
         <img class="product-img" src="${safeImg}" alt="${safeTitle}" loading="lazy">
         <button class="fav-btn ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist(${p.id})">
@@ -205,6 +217,7 @@ function createProductCardHTML(p) {
         </button>
         ${discountPercent > 0 ? `<span class="discount-badge">خصم ${discountPercent}%</span>` : ''}
         ${p.free_shipping ? `<span class="free-shipping-tag">🚚 توصيل مجاني</span>` : ''}
+        ${stockBadge}
       </div>
       <div class="product-info">
         <div class="product-title" title="${safeTitle}">${safeTitle}</div>
@@ -216,14 +229,14 @@ function createProductCardHTML(p) {
           <span class="current-price">${formatPrice(p.price)}</span>
           ${p.compare_at_price ? `<span class="compare-price">${formatPrice(p.compare_at_price)}</span>` : ''}
         </div>
-
-        <button class="add-cart-btn" onclick="event.stopPropagation(); addToCart(${p.id})">
-          🛒 أضف للسلة
+        <button class="add-cart-btn" ${outOfStock ? 'disabled style="opacity:0.45;cursor:not-allowed;background:#bbb;"' : ''} onclick="event.stopPropagation(); ${outOfStock ? '' : `addToCart(${p.id})`}">
+          ${outOfStock ? '❌ نفد من المخزون' : '🛒 أضف للسلة'}
         </button>
       </div>
     </div>
   `;
 }
+
 
 
 // Search and Filter Functions
@@ -374,15 +387,26 @@ function openProductModal(prodId) {
 
   const discountPercent = prod.compare_at_price ? Math.round(((prod.compare_at_price - prod.price) / prod.compare_at_price) * 100) : 0;
   document.getElementById('modalDiscountTag').innerText = discountPercent > 0 ? `خصم ${discountPercent}%` : '';
-
   document.getElementById('modalDescription').innerText = `منتج أصلي عالي الجودة مع شحن سريع ودفع عند الاستلام. شامل الضمان والإرجاع المجاني خلال 7 أيام.`;
+
+  // Stock badge in modal
+  const stock = prod.stock ?? null;
+  let stockHtml = '';
+  if (stock !== null) {
+    if (stock === 0)        stockHtml = `<span style="background:#D83A3A;color:white;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px;">❌ نفد المخزون</span>`;
+    else if (stock <= 5)   stockHtml = `<span style="background:#D83A3A;color:white;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px;">⚠️ آخر ${stock} قطع! أسرع قبل النفاد</span>`;
+    else if (stock <= 15)  stockHtml = `<span style="background:#FF9800;color:white;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px;">⏳ كمية محدودة — ${stock} قطعة فقط</span>`;
+    else                   stockHtml = `<span style="background:#198754;color:white;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px;">✅ متوفر في المخزون (${stock} قطعة)</span>`;
+  }
+  const stockEl = document.getElementById('modalStockBadge');
+  if (stockEl) { stockEl.innerHTML = stockHtml; stockEl.style.display = stockHtml ? 'block' : 'none'; }
 
   loadProductReviews(prod.id);
   loadProductRecommendations(prod);
   document.getElementById('addReviewBox').style.display = 'none';
-
   document.getElementById('productModal').classList.add('active');
 }
+
 
 function loadProductRecommendations(prod) {
   const container = document.getElementById('productRecommendationsGrid');
@@ -584,8 +608,12 @@ async function executeTrackOrder() {
 
 
 function changeModalQty(delta) {
-  currentModalQty = Math.max(1, currentModalQty + delta);
+  const maxStock = (currentModalProduct?.stock != null && currentModalProduct.stock > 0) ? currentModalProduct.stock : 999;
+  currentModalQty = Math.max(1, Math.min(maxStock, currentModalQty + delta));
   document.getElementById('modalQtyVal').innerText = currentModalQty;
+  if (currentModalQty >= maxStock && maxStock < 999) {
+    showToast(`الحد الأقصى المتاح: ${maxStock} قطعة`, 'warning', '⚠️');
+  }
 }
 
 function addModalItemToCart() {
@@ -609,7 +637,15 @@ function addToCart(prodId, qty = 1) {
   const prod = allProducts.find(p => p.id === prodId);
   if (!prod) return;
 
+  // ponytail: client-side stock guard before adding to cart
+  const available = prod.stock ?? Infinity;
   const existing = cart.find(item => item.id === prodId);
+  const currentInCart = existing ? existing.qty : 0;
+  if (currentInCart + qty > available) {
+    showToast(`لا يمكن إضافة أكثر من ${available} قطعة من «${prod.title_ar}» للسلة.`, 'danger', '⚠️');
+    return;
+  }
+
   if (existing) {
     existing.qty += qty;
   } else {
@@ -825,7 +861,11 @@ async function submitOrderProcess() {
       const orderData = await res.json();
       document.getElementById('placedOrderNum').innerText = orderData.order_number;
     } else {
-      document.getElementById('placedOrderNum').innerText = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+      // ponytail: display the exact stock error from the backend — do NOT fake order number
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.detail || 'حدث خطأ أثناء إنشاء الطلب';
+      showToast(errMsg, 'danger', '❌');
+      return;
     }
   } catch (err) {
     document.getElementById('placedOrderNum').innerText = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;

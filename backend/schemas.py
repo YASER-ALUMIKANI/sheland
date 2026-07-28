@@ -58,6 +58,7 @@ class ProductResponse(ProductBase):
     rating: float
     review_count: int
     is_featured: bool
+    stock: Optional[int] = 0   # ponytail: total stock from first variant, for frontend display
     variants: List[VariantResponse] = []
 
     class Config:
