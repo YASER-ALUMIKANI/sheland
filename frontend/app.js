@@ -34,32 +34,13 @@ function calculateShippingFee(city) {
   return 1500;
 }
 
-// Multi-Currency Engine
-
-let currentCurrency = localStorage.getItem('sheland_currency') || 'YER';
-const exchangeRates = {
-  'YER': { rate: 1, symbol: 'ر.ي' },
-  'SAR': { rate: 1 / 420, symbol: 'ر.س' },
-  'USD': { rate: 1 / 1580, symbol: '$' }
-};
-
-function setCurrency(curr) {
-  currentCurrency = curr;
-  localStorage.setItem('sheland_currency', curr);
-  const sel = document.getElementById('currencySelect');
-  if (sel) sel.value = curr;
-  renderProductsGrid();
-  updateCartUI();
-}
+// ponytail: Fixed to YER only — currency switching removed to avoid display inconsistencies
+const currentCurrency = 'YER';
 
 function formatPrice(priceInYER) {
-  const currData = exchangeRates[currentCurrency] || exchangeRates['YER'];
-  const converted = priceInYER * currData.rate;
-  if (currentCurrency === 'USD') {
-    return `${currData.symbol}${converted.toFixed(2)}`;
-  }
-  return `${Math.round(converted)} ${currData.symbol}`;
+  return `${Math.round(priceInYER)} ر.ي`;
 }
+
 
 // Dark Theme Switcher
 
