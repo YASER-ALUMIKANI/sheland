@@ -607,11 +607,60 @@ function roundVal(num) {
 
 // Order Tracking System
 function openTrackingModal() {
-  document.getElementById('trackModal').classList.add('active');
+  const modal = document.getElementById('trackModal');
+  if (modal) modal.classList.add('active');
+}
+
+function openTrackModal() {
+  openTrackingModal();
 }
 
 function closeTrackingModal() {
-  document.getElementById('trackModal').classList.remove('active');
+  const modal = document.getElementById('trackModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function updateTrackingTimelineUI(statusStr) {
+  const st = (statusStr || '').toLowerCase();
+  
+  const s1Icon = document.getElementById('trStep1Icon');
+  const s2Icon = document.getElementById('trStep2Icon');
+  const s3Icon = document.getElementById('trStep3Icon');
+  const s4Icon = document.getElementById('trStep4Icon');
+
+  const s1Text = document.getElementById('trStep1Text');
+  const s2Text = document.getElementById('trStep2Text');
+  const s3Text = document.getElementById('trStep3Text');
+  const s4Text = document.getElementById('trStep4Text');
+
+  [s1Icon, s2Icon, s3Icon, s4Icon].forEach(ic => {
+    if (ic) { ic.style.background = '#E0E0E0'; ic.style.color = 'white'; }
+  });
+  [s1Text, s2Text, s3Text, s4Text].forEach(tx => {
+    if (tx) { tx.style.color = '#777'; tx.style.fontWeight = '400'; }
+  });
+
+  let level = 1;
+  if (st.includes('تجهيز') || st.includes('preparing')) level = 2;
+  if (st.includes('شحن') || st.includes('shipped') || st.includes('طريق')) level = 3;
+  if (st.includes('مكتمل') || st.includes('تسليم') || st.includes('completed')) level = 4;
+
+  if (level >= 1 && s1Icon && s1Text) {
+    s1Icon.style.background = 'var(--success)'; s1Icon.style.color = 'white';
+    s1Text.style.color = 'var(--primary-dark)'; s1Text.style.fontWeight = '700';
+  }
+  if (level >= 2 && s2Icon && s2Text) {
+    s2Icon.style.background = 'var(--success)'; s2Icon.style.color = 'white';
+    s2Text.style.color = 'var(--primary-dark)'; s2Text.style.fontWeight = '700';
+  }
+  if (level >= 3 && s3Icon && s3Text) {
+    s3Icon.style.background = 'var(--primary)'; s3Icon.style.color = 'white';
+    s3Text.style.color = 'var(--primary-dark)'; s3Text.style.fontWeight = '700';
+  }
+  if (level >= 4 && s4Icon && s4Text) {
+    s4Icon.style.background = 'var(--success)'; s4Icon.style.color = 'white';
+    s4Text.style.color = 'var(--primary-dark)'; s4Text.style.fontWeight = '700';
+  }
 }
 
 async function executeTrackOrder() {
@@ -630,23 +679,25 @@ async function executeTrackOrder() {
     if (res.ok) {
       const order = await res.json();
       const statusMap = {
-        'قيد المعالجة': 'يجري تجهيز طلبك',
-        'processing': 'يجري تجهيز طلبك',
-        'قيد التجهيز': 'في التجهيز والتغليف',
-        'تم الشحن': 'في الطريق إليك 🚚',
-        'shipped': 'في الطريق إليك 🚚',
-        'مكتمل': 'تم التسليم ✔️',
-        'completed': 'تم التسليم ✔️',
-        'ملغي': 'تم الإلغاء ❌',
-        'cancelled': 'تم الإلغاء ❌'
+        'قيد المعالجة': '⏳ يجري معالجة وتجهيز طلبك',
+        'processing': '⏳ يجري معالجة وتجهيز طلبك',
+        'قيد التجهيز': '📦 في مرحلة التعبئة والتغليف',
+        'تم الشحن': '🚚 الشحنة في الطريق إليك الآن',
+        'shipped': '🚚 الشحنة في الطريق إليك الآن',
+        'مكتمل': '✔️ تم تسليم الطلب بنجاح',
+        'completed': '✔️ تم تسليم الطلب بنجاح',
+        'ملغي': '❌ تم إلغاء الطلب',
+        'cancelled': '❌ تم إلغاء الطلب'
       };
       const statusDisplay = statusMap[order.status] || order.status || 'جاري المعالجة';
       document.getElementById('trStatusDisplay').innerText = statusDisplay;
       document.getElementById('trAddressDisplay').innerText =
-        `📍 عنوان التوصيل: ${order.shipping_address || '-'} | تاريخ الطلب: ${new Date(order.created_at).toLocaleDateString('ar-EG')}`;
+        `📍 عنوان الشحن والتوصيل: ${order.shipping_address || '-'} | تاريخ الطلب: ${new Date(order.created_at || Date.now()).toLocaleDateString('ar-EG')}`;
+
+      updateTrackingTimelineUI(order.status);
       resBox.style.display = 'block';
     } else {
-      showToast('لم يتم العثور على طلب بهذا الرقم. تحقق من رقم الطلب.', 'danger', '❌');
+      showToast('لم يتم العثور على طلب بهذا الرقم. تحقق من رقم الطلب الصحيح.', 'danger', '❌');
     }
   } catch (err) {
     showToast('تعذر الاتصال بالخادم للتتبع. حاول لاحقاً.', 'warning', '⚠️');

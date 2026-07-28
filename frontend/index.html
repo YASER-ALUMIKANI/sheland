@@ -473,23 +473,23 @@
           <span style="background: var(--success); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;" id="trStatusDisplay">قيد التوصيل</span>
         </div>
 
-        <!-- Tracking Timeline Steps -->
+        <!-- Dynamic Tracking Timeline Steps -->
         <div style="display: flex; justify-content: space-between; position: relative; margin: 30px 0;">
-          <div style="text-align: center; z-index: 2;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">✓</div>
-            <div style="font-size: 11px; font-weight: 700;">تم الاستلام</div>
+          <div style="text-align: center; z-index: 2; flex: 1;">
+            <div id="trStep1Icon" style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">✓</div>
+            <div id="trStep1Text" style="font-size: 11px; font-weight: 700; color: #777;">تم الاستلام</div>
           </div>
-          <div style="text-align: center; z-index: 2;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">✓</div>
-            <div style="font-size: 11px; font-weight: 700;">قيد التجهيز</div>
+          <div style="text-align: center; z-index: 2; flex: 1;">
+            <div id="trStep2Icon" style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">📦</div>
+            <div id="trStep2Text" style="font-size: 11px; font-weight: 700; color: #777;">قيد التجهيز</div>
           </div>
-          <div style="text-align: center; z-index: 2;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🚚</div>
-            <div style="font-size: 11px; font-weight: 700; color: var(--primary-dark);">في الطريق إليك</div>
+          <div style="text-align: center; z-index: 2; flex: 1;">
+            <div id="trStep3Icon" style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🚚</div>
+            <div id="trStep3Text" style="font-size: 11px; font-weight: 700; color: #777;">في الطريق إليك</div>
           </div>
-          <div style="text-align: center; z-index: 2;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: #777; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🏠</div>
-            <div style="font-size: 11px; color: #777;">تم التسليم</div>
+          <div style="text-align: center; z-index: 2; flex: 1;">
+            <div id="trStep4Icon" style="width: 36px; height: 36px; border-radius: 50%; background: #E0E0E0; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px auto; font-weight: 800;">🏠</div>
+            <div id="trStep4Text" style="font-size: 11px; color: #777;">تم التسليم</div>
           </div>
         </div>
 
