@@ -682,13 +682,16 @@ let activeDiscountAmount = 0.0;
 let activeCouponCode = null;
 
 async function applyCouponCode() {
-  const code = (document.getElementById('couponCodeInput')?.value || '').trim().toUpperCase();
+  const code = (document.getElementById('couponCodeInput')?.value || document.getElementById('checkoutCouponInput')?.value || '').trim().toUpperCase();
   if (!code) {
     showToast('يرجى إدخال كود الخصم أولاً.', 'danger', '⚠️');
     return;
   }
 
-  const totalRaw = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  let totalRaw = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  if (totalRaw === 0 && currentModalProduct) {
+    totalRaw = currentModalProduct.price * (currentModalQty || 1);
+  }
 
   try {
     const res = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code)}&total=${totalRaw}`);
@@ -696,12 +699,20 @@ async function applyCouponCode() {
       const data = await res.json();
       activeDiscountAmount = data.discount_amount;
       activeCouponCode = data.code;
+
       const msgBox = document.getElementById('couponAppliedMsg');
       const msgText = document.getElementById('couponAppliedText');
       if (msgBox && msgText) {
         msgText.innerText = `✔️ كوبون (${data.code}): خصم ${formatPrice(data.discount_amount)}`;
         msgBox.style.display = 'flex';
       }
+
+      const chkMsg = document.getElementById('checkoutCouponMsg');
+      if (chkMsg) {
+        chkMsg.innerText = `✔️ تم تطبيق الكوبون (${data.code}): خصم ${formatPrice(data.discount_amount)}`;
+        chkMsg.style.display = 'block';
+      }
+
       showToast(`🎉 تم تطبيق الكوبون! خصم ${formatPrice(data.discount_amount)}`, 'success', '🎟️');
       updateCartUI();
     } else {
@@ -712,6 +723,7 @@ async function applyCouponCode() {
     showToast('تعذّر التحقق من الكوبون، تأكد من الاتصال بالسيرفر.', 'danger', '⚠️');
   }
 }
+
 
 function removeCoupon() {
   activeDiscountAmount = 0.0;

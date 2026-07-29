@@ -1163,8 +1163,10 @@ def create_product_review(product_id: int, review_in: schemas.ReviewCreate, db: 
 def get_coupons(db: Session = Depends(get_db)):
     return db.query(models.Coupon).all()
 
+@app.get("/api/coupons/validate")
 @app.post("/api/coupons/validate")
 def validate_coupon(code: str = Query(...), total: float = Query(...), db: Session = Depends(get_db)):
+
     coupon = db.query(models.Coupon).filter(models.Coupon.code == code.upper(), models.Coupon.is_active == True).first()
     if not coupon:
         raise HTTPException(status_code=404, detail="رمز الكوبون غير صحيح أو منتهي الصلاحية")
