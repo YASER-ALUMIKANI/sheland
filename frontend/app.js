@@ -535,16 +535,26 @@ async function loadProductReviews(prodId) {
         `;
         return;
       }
-      container.innerHTML = revs.map(r => `
-        <div style="border-bottom:1px solid #EEE; padding:8px 0;">
-          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-            <span>👤 ${escapeHTML(r.author_name || 'عميل شي لاند')}</span>
-            <span style="color:var(--accent-gold);">⭐ ${r.rating}/5</span>
+      container.innerHTML = revs.map(r => {
+        const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+        const verifiedBadge = r.is_verified_purchase
+          ? `<span style="background:#1A7A4C;color:white;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;margin-right:4px;">✔ مشترٍ حقيقي</span>`
+          : '';
+        const photoHtml = r.image_url
+          ? `<div style="margin-top:8px;"><img src="${escapeHTML(r.image_url)}" onclick="window.open('${escapeHTML(r.image_url)}','_blank')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:zoom-in;border:2px solid #eee;" alt="صورة المنتج من العميل"></div>`
+          : '';
+        return `
+          <div style="border-bottom:1px solid #EEE; padding:10px 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700;">
+              <span>👤 ${escapeHTML(r.author_name || 'عميل شي لاند')} ${verifiedBadge}</span>
+              <span style="color:#F59E0B; font-size:14px; letter-spacing:1px;">${stars}</span>
+            </div>
+            <p style="font-size:12px; color:#555; margin-top:4px; line-height:1.6;">${escapeHTML(r.comment || '')}</p>
+            ${photoHtml}
+            <div style="font-size:10px; color:#aaa; margin-top:4px;">${new Date(r.created_at).toLocaleDateString('ar-YE')}</div>
           </div>
-          <p style="font-size:12px; color:#555; margin-top:2px;">${escapeHTML(r.comment || '')}</p>
-        </div>
-      `).join('');
-
+        `;
+      }).join('');
     }
   } catch (err) {
     container.innerHTML = '<div style="font-size:12px; color:#777;">⭐ 4.8/5 - تقييم ممتاز بناءً على مراجعات الشراء</div>';
@@ -556,36 +566,116 @@ function toggleReviewForm() {
   box.style.display = box.style.display === 'none' ? 'block' : 'none';
 }
 
+// Interactive star rating state
+let _reviewPhotoUrl = null;
+let _selectedStars = 5;
+
+function setReviewStar(n) {
+  _selectedStars = n;
+  document.querySelectorAll('.review-star-btn').forEach((btn, i) => {
+    btn.style.color = i < n ? '#F59E0B' : '#ccc';
+    btn.style.textShadow = i < n ? '0 0 6px rgba(245,158,11,0.5)' : 'none';
+  });
+}
+
+async function pickReviewPhoto() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const btn = document.getElementById('reviewPhotoBtn');
+    if (btn) { btn.innerText = '⏳ جاري الرفع...'; btn.disabled = true; }
+    try {
+      const res = await fetch(`${API_BASE.replace('/api','')+'/api'}/reviews/upload-photo`, { method: 'POST', body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        _reviewPhotoUrl = data.url;
+        const preview = document.getElementById('reviewPhotoPreview');
+        if (preview) { preview.src = _reviewPhotoUrl; preview.style.display = 'block'; }
+        if (btn) { btn.innerText = '✅ تم رفع الصورة'; }
+        showToast('تم رفع صورة المنتج بنجاح!', 'success', '📷');
+      } else {
+        if (btn) { btn.innerText = '📷 أرفق صورة المنتج'; btn.disabled = false; }
+        showToast('فشل رفع الصورة، حاول مجدداً.', 'danger', '⚠️');
+      }
+    } catch {
+      if (btn) { btn.innerText = '📷 أرفق صورة المنتج'; btn.disabled = false; }
+    }
+  };
+  input.click();
+}
+
+async function verifyOrderForReview() {
+  if (!currentModalProduct) return;
+  const orderNum = (document.getElementById('revOrderNumber')?.value || '').trim().toUpperCase();
+  if (!orderNum) {
+    showToast('أدخل رقم الطلب أولاً للتحقق.', 'danger', '⚠️');
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/orders/check-purchased?order_number=${orderNum}&product_id=${currentModalProduct.id}`);
+    const data = await res.json();
+    const badge = document.getElementById('verifiedPurchaseBadge');
+    if (data.verified) {
+      if (badge) { badge.style.display = 'inline-block'; }
+      const nameEl = document.getElementById('revAuthor');
+      if (nameEl && data.customer_name) nameEl.value = data.customer_name;
+      showToast('✔ تم التحقق من شرائك لهذا المنتج!', 'success', '🛒');
+    } else {
+      if (badge) badge.style.display = 'none';
+      showToast('لم يُعثر على هذا المنتج في الطلب المذكور.', 'danger', '❌');
+    }
+  } catch {
+    showToast('تعذّر التحقق، تأكد من رقم الطلب.', 'danger', '⚠️');
+  }
+}
+
 async function submitProductReview() {
   if (!currentModalProduct) return;
 
-  const rating = parseInt(document.getElementById('revRating').value);
-  const author = document.getElementById('revAuthor').value.trim();
-  const comment = document.getElementById('revComment').value.trim();
+  const comment = (document.getElementById('revComment')?.value || '').trim();
+  const author  = (document.getElementById('revAuthor')?.value || '').trim();
+  const orderNum = (document.getElementById('revOrderNumber')?.value || '').trim().toUpperCase() || null;
 
   if (!comment) {
-    showToast("يرجى كتابة تعليق أو انطباع عن المنتج قبل النشر.", 'danger', '⚠️');
+    showToast('يرجى كتابة انطباعك عن المنتج قبل النشر.', 'danger', '⚠️');
     return;
   }
 
-  const payload = { author_name: author || "عميل شي لاند", rating, comment };
+  const payload = {
+    author_name: author || 'عميل شي لاند',
+    rating: _selectedStars,
+    comment,
+    order_number: orderNum || null,
+    image_url: _reviewPhotoUrl || null
+  };
 
   try {
     const res = await fetch(`${API_BASE}/products/${currentModalProduct.id}/reviews`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (res.ok) {
-      showToast("🎉 تم إضافة تقييمك بنجاح وشكراً لمشاركتك!", 'success');
+      showToast('🎉 تم نشر تقييمك بنجاح! شكراً لمساهمتك.', 'success');
       toggleReviewForm();
+      _reviewPhotoUrl = null;
+      _selectedStars = 5;
       loadProductReviews(currentModalProduct.id);
+    } else {
+      const err = await res.json();
+      showToast(err.detail || 'فشل النشر، حاول مجدداً.', 'danger', '⚠️');
     }
-  } catch (err) {
-    showToast("تم تسجيل تقييمك بنجاح!", 'success');
+  } catch {
+    showToast('تم تسجيل تقييمك بنجاح!', 'success');
     toggleReviewForm();
   }
 }
+
 
 // Coupons System
 let activeDiscountAmount = 0.0;

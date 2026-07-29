@@ -159,9 +159,12 @@ class Review(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     author_name = Column(String, default="عميل شي لاند")
+    order_number = Column(String, nullable=True)  # ponytail: verified purchase token
+    is_verified_purchase = Column(Boolean, default=False)
 
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
+    image_url = Column(String, nullable=True)  # optional photo of received product
     created_at = Column(DateTime, default=datetime.utcnow)
 
     product = relationship("Product", back_populates="reviews")

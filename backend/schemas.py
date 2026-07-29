@@ -162,15 +162,18 @@ class OrderResponse(BaseModel):
 
 class ReviewCreate(BaseModel):
     author_name: Optional[str] = "عميل شي لاند"
-
+    order_number: Optional[str] = None  # provided to verify the reviewer actually purchased
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., min_length=2)
+    image_url: Optional[str] = None  # URL of uploaded review photo
 
 class ReviewResponse(BaseModel):
     id: int
     author_name: str
     rating: int
     comment: Optional[str]
+    image_url: Optional[str] = None
+    is_verified_purchase: bool = False
     created_at: datetime
 
     class Config:

@@ -111,9 +111,24 @@ def auto_seed_on_startup():
     try:
         with engine.connect() as conn:
             from sqlalchemy import text
-            for col, default_val in [("parcel_count", "'1 من 1'"), ("weight", "'0.85 كجم'"), ("dimensions", "'25 × 15 × 10 سم'")]:
+            for col, default_val in [
+                ("parcel_count", "'1 من 1'"),
+                ("weight", "'0.85 كجم'"),
+                ("dimensions", "'25 × 15 × 10 سم'"),
+            ]:
                 try:
                     conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} VARCHAR DEFAULT {default_val}"))
+                    conn.commit()
+                except Exception:
+                    pass
+            # Review photo + verified purchase migration
+            for col, typedef in [
+                ("image_url", "VARCHAR"),
+                ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
+                ("order_number", "VARCHAR"),
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE reviews ADD COLUMN {col} {typedef}"))
                     conn.commit()
                 except Exception:
                     pass
@@ -1039,19 +1054,65 @@ def create_order(request: Request, order_in: schemas.OrderCreate, db: Session = 
 def get_product_reviews(product_id: int, db: Session = Depends(get_db)):
     return db.query(models.Review).filter(models.Review.product_id == product_id).order_by(models.Review.id.desc()).all()
 
+
+@app.post("/api/reviews/upload-photo")
+async def upload_review_photo(file: UploadFile = File(...)):
+    """Open endpoint for customers to upload a review photo (no login required)."""
+    # ponytail: validate image type before saving to prevent abuse
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else '.jpg'
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+        raise HTTPException(status_code=400, detail="يسمح فقط برفع صور JPG أو PNG أو WebP")
+    contents = await file.read()
+    if len(contents) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="حجم الصورة كبير جداً (الحد الأقصى 8 ميجابايت)")
+    filename = f"review_{uuid.uuid4().hex[:12]}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(contents)
+    return {"url": f"/uploads/{filename}"}
+
+
+@app.get("/api/orders/check-purchased")
+def check_order_purchased(
+    order_number: str = Query(...),
+    product_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Verifies that a given order_number contains the product, returning customer name for review pre-fill."""
+    order = db.query(models.Order).filter(models.Order.order_number == order_number.upper()).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="رقم الطلب غير موجود")
+    purchased = any(item.product_id == product_id for item in order.items)
+    return {
+        "verified": purchased,
+        "customer_name": order.customer_name if purchased else None
+    }
+
+
 @app.post("/api/products/{product_id}/reviews", response_model=schemas.ReviewResponse)
 def create_product_review(product_id: int, review_in: schemas.ReviewCreate, db: Session = Depends(get_db)):
     prod = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not prod:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # ponytail: verify purchase if order_number provided
+    is_verified = False
+    if review_in.order_number:
+        order = db.query(models.Order).filter(
+            models.Order.order_number == review_in.order_number.upper()
+        ).first()
+        if order and any(item.product_id == product_id for item in order.items):
+            is_verified = True
+
     db_review = models.Review(
         product_id=product_id,
         author_name=review_in.author_name or "عميل شي لاند",
+        order_number=review_in.order_number,
+        is_verified_purchase=is_verified,
         rating=review_in.rating,
-        comment=review_in.comment
+        comment=review_in.comment,
+        image_url=review_in.image_url
     )
-
     db.add(db_review)
 
     # Recalculate average rating

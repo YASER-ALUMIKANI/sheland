@@ -397,24 +397,49 @@
           <div style="border-top: 1px solid var(--border); padding-top: 16px;">
             <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
               <span>💬 تقييمات العملاء ومراجعاتهم</span>
-              <button onclick="toggleReviewForm()" style="font-size: 12px; color: var(--primary); font-weight: 700;">+ إضافة تقييمك</button>
+              <button onclick="toggleReviewForm()" style="font-size: 12px; color: var(--primary); font-weight: 700; background: #FAF5F9; border: 1px solid #E8D4E5; padding: 5px 12px; border-radius: 20px;">+ إضافة تقييمك</button>
             </h3>
 
             <!-- Add Review Form (Hidden by default) -->
-            <div id="addReviewBox" style="display: none; background: #FAF5F9; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E8D4E5;">
-              <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">اختر التقييم بالنجوم:</div>
-              <select id="revRating" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px;">
-                <option value="5">⭐⭐⭐⭐⭐ ممتاز جداً (5/5)</option>
-                <option value="4">⭐⭐⭐⭐ جيد جداً (4/5)</option>
-                <option value="3">⭐⭐⭐ متوسط (3/5)</option>
-              </select>
-              <input type="text" id="revAuthor" placeholder="اسمك (اختياري)" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px;">
-              <textarea id="revComment" placeholder="اكتب تعليقك وانطباعك عن المنتج..." style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px; height: 60px;"></textarea>
-              <button onclick="submitProductReview()" style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 4px; font-weight: 700; font-size: 13px;">نشر التقييم 🚀</button>
+            <div id="addReviewBox" style="display: none; background: #FAF5F9; padding: 16px; border-radius: 12px; margin-bottom: 14px; border: 1px solid #E8D4E5;">
+              <!-- Star Rating Picker -->
+              <div style="font-weight: 800; font-size: 13px; margin-bottom: 8px;">⭐ تقييمك بالنجوم:</div>
+              <div style="display:flex; gap: 8px; margin-bottom: 12px;" id="starRatingRow">
+                <button class="review-star-btn" onclick="setReviewStar(1)" style="font-size:28px; background:none; border:none; cursor:pointer; color:#F59E0B; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">★</button>
+                <button class="review-star-btn" onclick="setReviewStar(2)" style="font-size:28px; background:none; border:none; cursor:pointer; color:#F59E0B; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">★</button>
+                <button class="review-star-btn" onclick="setReviewStar(3)" style="font-size:28px; background:none; border:none; cursor:pointer; color:#F59E0B; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">★</button>
+                <button class="review-star-btn" onclick="setReviewStar(4)" style="font-size:28px; background:none; border:none; cursor:pointer; color:#F59E0B; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">★</button>
+                <button class="review-star-btn" onclick="setReviewStar(5)" style="font-size:28px; background:none; border:none; cursor:pointer; color:#F59E0B; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">★</button>
+              </div>
+
+              <!-- Author Name -->
+              <input type="text" id="revAuthor" placeholder="اسمك (اختياري)" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px; box-sizing:border-box;">
+
+              <!-- Review Text -->
+              <textarea id="revComment" placeholder="اكتب انطباعك الحقيقي عن المنتج: الجودة، المظهر، سرعة التوصيل..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px; height: 70px; resize: vertical; box-sizing:border-box;"></textarea>
+
+              <!-- Optional: Verify Purchase -->
+              <div style="background: #F0FBF5; border: 1px solid #A7D9BE; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                <div style="font-size: 12px; font-weight: 800; color: #1A7A4C; margin-bottom: 6px;">🛒 تحقق من شرائك (اختياري) — للحصول على شارة "مشترٍ حقيقي"</div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <input type="text" id="revOrderNumber" placeholder="رقم الطلب (مثال: ORD-ABC12345)" style="flex:1; padding: 6px 10px; border-radius: 6px; border: 1px solid #CCC; font-size: 12px;">
+                  <button onclick="verifyOrderForReview()" style="background: #1A7A4C; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; white-space:nowrap;">تحقق</button>
+                </div>
+                <span id="verifiedPurchaseBadge" style="display:none; margin-top:6px; background:#1A7A4C; color:white; font-size:10px; font-weight:800; padding:2px 10px; border-radius:20px;">✔ مشترٍ حقيقي — تم التحقق</span>
+              </div>
+
+              <!-- Optional: Attach Photo -->
+              <div style="margin-bottom: 12px;">
+                <button id="reviewPhotoBtn" onclick="pickReviewPhoto()" style="background: #6C3483; color: white; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 12px;">📷 أرفق صورة المنتج عند الاستلام</button>
+                <img id="reviewPhotoPreview" src="" alt="معاينة الصورة" style="display:none; margin-top:8px; width:80px; height:80px; object-fit:cover; border-radius:8px; border:2px solid #E8D4E5;">
+              </div>
+
+              <!-- Submit Button -->
+              <button onclick="submitProductReview()" style="background: var(--primary); color: white; padding: 9px 20px; border-radius: 8px; font-weight: 800; font-size: 13px; width:100%;">نشر تقييمك الآن 🚀</button>
             </div>
 
             <!-- Reviews List Container -->
-            <div id="productReviewsList" style="max-height: 180px; overflow-y: auto;">
+            <div id="productReviewsList" style="max-height: 260px; overflow-y: auto;">
               <!-- Rendered dynamically -->
             </div>
           </div>
