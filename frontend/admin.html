@@ -314,8 +314,54 @@
 
     <!-- TAB 1: Products Management -->
     <div id="productsTab" class="admin-tab-content">
+
+      <!-- Inventory & Stagnant Stock Alert Banner -->
+      <div id="inventoryAlertBanner" style="background: linear-gradient(135deg, #FFF5F5 0%, #FFFAF0 100%); border: 1px solid #FEB2B2; border-radius: 14px; padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+          <h3 style="margin: 0; font-weight: 900; font-size: 16px; color: #9B2C2C; display: flex; align-items: center; gap: 8px;">
+            <span>🚨 مركز تنبيهات إدارة المخزون والمنتجات الراكدة</span>
+          </h3>
+          <button onclick="refreshInventoryAlerts()" style="background: #9B2C2C; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">🔄 تحديث التنبيهات</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+          <!-- Card 1: Low Stock (<= 5) -->
+          <div onclick="showInventoryAlertDetails('low_stock')" style="background: white; border: 2px solid #FEB2B2; border-radius: 12px; padding: 14px 18px; cursor: pointer; transition: transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 13px; font-weight: 800; color: #E53E3E;">🔴 أوشكت على النفاذ (≤ 5 قطع)</div>
+            <div style="font-size: 24px; font-weight: 900; color: #9B2C2C; margin-top: 4px;"><span id="alertLowStockCount">0</span> منتج</div>
+            <div style="font-size: 11px; color: #718096; margin-top: 2px;">اضغط للاستعراض والتنبيه ➔</div>
+          </div>
+
+          <!-- Card 2: Stagnant 7+ days -->
+          <div onclick="showInventoryAlertDetails('stagnant_weekly')" style="background: white; border: 2px solid #F6AD55; border-radius: 12px; padding: 14px 18px; cursor: pointer; transition: transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 13px; font-weight: 800; color: #DD6B20;">🟡 مخزون راكد (أكثر من أسبوع)</div>
+            <div style="font-size: 24px; font-weight: 900; color: #C05621; margin-top: 4px;"><span id="alertStagnantWeeklyCount">0</span> منتج</div>
+            <div style="font-size: 11px; color: #718096; margin-top: 2px;">بدون مبيعات لأكثر من 7 أيام ➔</div>
+          </div>
+
+          <!-- Card 3: Stagnant 30+ days -->
+          <div onclick="showInventoryAlertDetails('stagnant_monthly')" style="background: white; border: 2px solid #ECC94B; border-radius: 12px; padding: 14px 18px; cursor: pointer; transition: transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 13px; font-weight: 800; color: #D69E2E;">🟠 مخزون راكد (أكثر من شهر)</div>
+            <div style="font-size: 24px; font-weight: 900; color: #B7791F; margin-top: 4px;"><span id="alertStagnantMonthlyCount">0</span> منتج</div>
+            <div style="font-size: 11px; color: #718096; margin-top: 2px;">بدون مبيعات لأكثر من 30 يوماً ➔</div>
+          </div>
+        </div>
+
+        <!-- Alert Details Box -->
+        <div id="inventoryAlertDetailsBox" style="display: none; background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; margin-top: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #EDF2F7; padding-bottom: 10px;">
+            <h4 id="inventoryAlertBoxTitle" style="margin: 0; font-weight: 900; font-size: 15px; color: var(--primary);">تفاصيل التنبيهات</h4>
+            <span onclick="document.getElementById('inventoryAlertDetailsBox').style.display='none'" style="cursor: pointer; font-size: 14px; font-weight: 800; color: #A0AEC0;">✕ إغلاق النافذة</span>
+          </div>
+          <div id="inventoryAlertBoxContent" style="max-height: 320px; overflow-y: auto;">
+            <!-- Items rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
       <div class="admin-table-card">
         <div class="table-tools">
+
           <input type="text" id="adminSearchInput" placeholder="ابحث عن منتج بالاسم..." oninput="filterAdminProducts(this.value)" style="padding: 10px 16px; border: 1px solid #CCC; border-radius: 8px; width: 240px;">
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <a href="/api/products/excel-template" download style="background: #4A5568; color: white; padding: 9px 14px; border-radius: 8px; font-weight: 800; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">📥 قالب Excel</a>
@@ -1143,6 +1189,104 @@
     document.addEventListener("DOMContentLoaded", initAdminUI);
 
 
+    // ================================================================
+    // Inventory & Stagnant Stock Alerts Functions
+    // ================================================================
+    let cachedInventoryAlerts = null;
+
+    async function loadAdminInventoryAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/inventory/alerts`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          cachedInventoryAlerts = await res.json();
+          if (document.getElementById('alertLowStockCount'))
+            document.getElementById('alertLowStockCount').innerText = cachedInventoryAlerts.low_stock_count || 0;
+          if (document.getElementById('alertStagnantWeeklyCount'))
+            document.getElementById('alertStagnantWeeklyCount').innerText = cachedInventoryAlerts.stagnant_weekly_count || 0;
+          if (document.getElementById('alertStagnantMonthlyCount'))
+            document.getElementById('alertStagnantMonthlyCount').innerText = cachedInventoryAlerts.stagnant_monthly_count || 0;
+        }
+      } catch (err) {
+        console.log("Inventory alerts error:", err);
+      }
+    }
+
+    function refreshInventoryAlerts() {
+      showAdminToast('⏳ جاري فحص المخزون والمنتجات الراكدة...', 'info');
+      loadAdminInventoryAlerts().then(() => {
+        showAdminToast('✅ تم تحديث تنبيهات المخزون بنجاح!', 'success');
+      });
+    }
+
+    function showInventoryAlertDetails(type) {
+      if (!cachedInventoryAlerts) return;
+      const box = document.getElementById('inventoryAlertDetailsBox');
+      const title = document.getElementById('inventoryAlertBoxTitle');
+      const content = document.getElementById('inventoryAlertBoxContent');
+      if (!box || !title || !content) return;
+
+      let items = [];
+      let titleText = "";
+      let badgeColor = "#E53E3E";
+
+      if (type === 'low_stock') {
+        items = cachedInventoryAlerts.low_stock_items || [];
+        titleText = `🔴 المنتجات التي أوشكت على النفاذ (≤ 5 قطع) — العدد: ${items.length}`;
+        badgeColor = "#9B2C2C";
+      } else if (type === 'stagnant_weekly') {
+        items = cachedInventoryAlerts.stagnant_weekly_items || [];
+        titleText = `🟡 المخزون الراكد لأكثر من أسبوع (7+ أيام دون مبيعات) — العدد: ${items.length}`;
+        badgeColor = "#DD6B20";
+      } else if (type === 'stagnant_monthly') {
+        items = cachedInventoryAlerts.stagnant_monthly_items || [];
+        titleText = `🟠 المخزون الراكد لأكثر من شهر (30+ يوم دون مبيعات) — العدد: ${items.length}`;
+        badgeColor = "#D69E2E";
+      }
+
+      title.innerText = titleText;
+      title.style.color = badgeColor;
+
+      if (items.length === 0) {
+        content.innerHTML = '<div style="text-align:center; padding:16px; color:#718096; font-size:13px; font-weight:700;">✅ لا توجد منتجات تندرج تحت هذا التنبيه حالياً!</div>';
+      } else {
+        content.innerHTML = items.map(item => `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #EDF2F7; padding:10px 0; font-size:13px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <img src="${item.image_url || 'https://via.placeholder.com/40'}" style="width:36px; height:36px; object-fit:cover; border-radius:6px;">
+              <div>
+                <div style="font-weight:800; color:#1E1B2E;">${escapeAdminHTML(item.title_ar)}</div>
+                <div style="font-size:11px; color:#718096;">
+                  التاجر: <b>${escapeAdminHTML(item.seller_name)}</b> | السعر: <b>${item.price} ر.ي</b>
+                  ${type.includes('stagnant') ? ` | الخمول: <b style="color:#DD6B20;">${item.days_inactive} يوماً</b> (آخر بيع: ${item.last_sale_date})` : ` | الكمية المتبقية: <b style="color:#E53E3E;">${item.stock} قطع</b>`}
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="sendSellerStockWhatsApp('${item.seller_phone}', '${escapeAdminHTML(item.title_ar)}', '${type}')" style="background:#25D366; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:800; font-size:11px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                📱 تنبيه البائع عبر الواتساب
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      box.style.display = 'block';
+    }
+
+    function sendSellerStockWhatsApp(phone, productTitle, type) {
+      let targetPhone = phone || '967770000000';
+      let digits = targetPhone.replace(/\D/g, '');
+      if (!digits.startsWith('967') && digits.length <= 9) digits = '967' + digits;
+      
+      let msg = "";
+      if (type === 'low_stock') {
+        msg = `تنبيه من إدارة منصة شي لاند: يرجى العلم بأن مخزون المنتج «${productTitle}» قد أوشك على النفاذ (أقل من 5 قطع). يرجى تزويد المخزون في أقرب وقت.`;
+      } else {
+        msg = `تنبيه من إدارة منصة شي لاند: يرجى العلم بأن المنتج «${productTitle}» يعتبر مخزوناً راكداً (لا توجد عليه مبيعات منذ فترة). يُنصح بعمل خصم أو ترويج لإعادة تحريك المبيعات.`;
+      }
+      window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
     async function loadAdminProducts() {
       try {
         const res = await fetch(`${API_BASE}/products`);
@@ -1157,7 +1301,9 @@
       }
       renderAdminProducts(adminProducts);
       document.getElementById('statProductsCount').innerText = adminProducts.length;
+      loadAdminInventoryAlerts();
     }
+
 
     function getCleanCustomerWhatsApp(order) {
       let targetPhone = order.phone || '';

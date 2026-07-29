@@ -122,3 +122,83 @@ def compute_ecommerce_analytics(db: Session) -> Dict[str, Any]:
         "operations": operations,
         "golden_triangle": golden_triangle
     }
+
+from datetime import datetime, timedelta
+
+def calculate_inventory_alerts(db: Session) -> Dict[str, Any]:
+    """
+    Identifies:
+    1. Low Stock Products (stock <= 5 items).
+    2. Stagnant Inventory (Weekly: 7+ days no sales, Monthly: 30+ days no sales).
+    """
+    now = datetime.utcnow()
+    products = db.query(models.Product).all()
+
+    # Track last order date for each product
+    latest_sales: Dict[int, datetime] = {}
+    order_items = db.query(models.OrderItem).join(models.Order).filter(models.Order.status != 'ملغي', models.Order.status != 'cancelled').all()
+    for item in order_items:
+        if item.order and item.order.created_at:
+            prev = latest_sales.get(item.product_id)
+            if not prev or item.order.created_at > prev:
+                latest_sales[item.product_id] = item.order.created_at
+
+    low_stock_list = []
+    stagnant_weekly = []
+    stagnant_monthly = []
+
+    for p in products:
+        current_stock = p.stock  # total stock across variants
+        seller_name = p.seller.store_name if (p.seller and p.seller.store_name) else "متجر شي لاند"
+        seller_phone = p.seller.user.phone if (p.seller and p.seller.user and p.seller.user.phone) else "967770000000"
+
+        # 1. Low stock alert (<= 5 pieces)
+        if current_stock <= 5:
+            low_stock_list.append({
+                "id": p.id,
+                "title_ar": p.title_ar,
+                "stock": current_stock,
+                "price": p.price,
+                "image_url": p.image_url,
+                "seller_name": seller_name,
+                "seller_phone": seller_phone,
+                "category_name": p.category.name_ar if p.category else "عام"
+            })
+
+        # 2. Stagnant inventory alert (stock > 0 and no sales in 7+ or 30+ days)
+        if current_stock > 0:
+            last_sold = latest_sales.get(p.id)
+            ref_date = last_sold if last_sold else p.created_at
+            days_inactive = (now - ref_date).days if ref_date else 31
+
+            stagnant_info = {
+                "id": p.id,
+                "title_ar": p.title_ar,
+                "stock": current_stock,
+                "price": p.price,
+                "image_url": p.image_url,
+                "days_inactive": days_inactive,
+                "last_sale_date": last_sold.strftime("%Y-%m-%d") if last_sold else "لم يُبَع بعد",
+                "seller_name": seller_name,
+                "seller_phone": seller_phone,
+                "category_name": p.category.name_ar if p.category else "عام"
+            }
+
+            if days_inactive >= 30:
+                stagnant_monthly.append(stagnant_info)
+            elif days_inactive >= 7:
+                stagnant_weekly.append(stagnant_info)
+
+    low_stock_list.sort(key=lambda x: x["stock"])
+    stagnant_weekly.sort(key=lambda x: x["days_inactive"], reverse=True)
+    stagnant_monthly.sort(key=lambda x: x["days_inactive"], reverse=True)
+
+    return {
+        "low_stock_count": len(low_stock_list),
+        "stagnant_weekly_count": len(stagnant_weekly),
+        "stagnant_monthly_count": len(stagnant_monthly),
+        "low_stock_items": low_stock_list,
+        "stagnant_weekly_items": stagnant_weekly,
+        "stagnant_monthly_items": stagnant_monthly
+    }
+

@@ -1223,8 +1223,18 @@ def delete_coupon(
     db.delete(coupon)
     db.commit()
 
+# --- Inventory & Stagnant Alerts Endpoint ---
+@app.get("/api/admin/inventory/alerts")
+def get_inventory_alerts(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager", "seller"]))
+):
+    """Returns low stock products (<= 5 items) and stagnant products (no sales for 7+ or 30+ days)."""
+    return analytics.calculate_inventory_alerts(db)
+
 # --- Excel & PDF Sales Reports Endpoints ---
 @app.get("/api/admin/reports/sales-excel")
+
 def export_sales_excel_report(
     period: str = Query("all"),
     db: Session = Depends(get_db),
