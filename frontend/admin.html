@@ -777,7 +777,8 @@
             localStorage.setItem('sheland_jwt_token', data.access_token);
             localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
             hideAdminLoginModal();
-            initAdminUI();
+            alert(`🎉 مرحباً بك "${data.user.name}"! تم تسجيل الدخول كمدير بنجاح.`);
+            location.reload();
             return;
           } else {
             if (errBox) {
