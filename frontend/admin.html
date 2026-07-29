@@ -1782,13 +1782,18 @@
             <td style="font-size:12px; color:#4A5568; max-width:250px;">${pm.instructions || '—'}</td>
             <td>${statusBadge}</td>
             <td>
-              <button onclick='editPaymentMethod(${JSON.stringify(pm).replace(/'/g, "&apos;")})' style="background:#3B82F6; color:white; border:none; padding:5px 10px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; margin-left:4px;">✏️ تعديل</button>
+              <button onclick="editPaymentMethodById('${pm.id}')" style="background:#3B82F6; color:white; border:none; padding:5px 10px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; margin-left:4px;">✏️ تعديل</button>
               <button onclick="togglePaymentStatus('${pm.id}', ${pm.is_active})" style="background:${pm.is_active ? '#E53E3E' : '#38A169'}; color:white; border:none; padding:5px 10px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; margin-left:4px;">${pm.is_active ? 'تعطيل' : 'تفعيل'}</button>
               <button onclick="deletePaymentMethod('${pm.id}')" style="background:#718096; color:white; border:none; padding:5px 8px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer;">🗑️</button>
             </td>
           </tr>
         `;
       }).join('');
+    }
+
+    function editPaymentMethodById(id) {
+      const pm = adminPaymentMethods.find(x => x.id === id);
+      if (pm) editPaymentMethod(pm);
     }
 
     function openAddPaymentModal() {
