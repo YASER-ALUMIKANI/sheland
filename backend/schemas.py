@@ -120,6 +120,8 @@ class OrderCreate(BaseModel):
     shipping_address: str
     payment_method: str = "COD"
     payment_tx_id: Optional[str] = None
+    coupon_code: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
     items: List[CartItemCreate]
 
 class OrderItemResponse(BaseModel):
@@ -149,6 +151,8 @@ class OrderResponse(BaseModel):
     payment_tx_id: Optional[str] = None
     status: str
     total_amount: float
+    coupon_code: Optional[str] = None
+    discount_amount: Optional[float] = 0.0
     parcel_count: Optional[str] = "1 من 1"
     weight: Optional[str] = "0.85 كجم"
     dimensions: Optional[str] = "25 × 15 × 10 سم"
@@ -157,6 +161,7 @@ class OrderResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 
 

@@ -128,6 +128,8 @@ class Order(Base):
     parcel_count = Column(String, default="1 من 1")
     weight = Column(String, default="0.85 كجم")
     dimensions = Column(String, default="25 × 15 × 10 سم")
+    coupon_code = Column(String, nullable=True)
+    discount_amount = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

@@ -132,6 +132,18 @@ def auto_seed_on_startup():
                     conn.commit()
                 except Exception:
                     pass
+
+            # Coupon code + discount amount migration for orders table
+            for col, typedef in [
+                ("coupon_code", "VARCHAR"),
+                ("discount_amount", "FLOAT DEFAULT 0.0"),
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {typedef}"))
+                    conn.commit()
+                except Exception:
+                    pass
+
     except Exception as e:
         print("Migration warning:", e)
 
@@ -1044,10 +1056,31 @@ def create_order(request: Request, order_in: schemas.OrderCreate, db: Session = 
                     v.stock -= deduct
                     remaining_to_deduct -= deduct
 
-    db_order.total_amount = round(total, 2)
+    # Evaluate & validate coupon discount
+    applied_coupon_code = None
+    discount = 0.0
+
+    if order_in.coupon_code:
+        code_upper = order_in.coupon_code.strip().upper()
+        coupon = db.query(models.Coupon).filter(models.Coupon.code == code_upper, models.Coupon.is_active == True).first()
+        if coupon and total >= coupon.min_order_amount:
+            applied_coupon_code = coupon.code
+            if coupon.discount_type == "percent":
+                discount = round(total * (coupon.discount_value / 100.0), 2)
+            elif coupon.discount_type == "fixed":
+                discount = min(total, coupon.discount_value)
+    elif order_in.discount_amount and order_in.discount_amount > 0:
+        discount = min(total, order_in.discount_amount)
+
+    final_net_total = max(0.0, round(total - discount, 2))
+
+    db_order.coupon_code = applied_coupon_code or (order_in.coupon_code.strip().upper() if order_in.coupon_code else None)
+    db_order.discount_amount = round(discount, 2)
+    db_order.total_amount = final_net_total
     db.commit()
     db.refresh(db_order)
     return db_order
+
 
 # --- Review Endpoints ---
 @app.get("/api/products/{product_id}/reviews", response_model=List[schemas.ReviewResponse])

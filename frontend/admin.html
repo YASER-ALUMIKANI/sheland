@@ -1445,6 +1445,12 @@
               </thead>
               <tbody>
                 ${itemsRowsHtml}
+                ${order.discount_amount && order.discount_amount > 0 ? `
+                <tr style="background: #FFF5F5;">
+                  <td colspan="4" style="text-align: left; font-weight: 700; color: #C53030;">🎟️ خصم الكوبون (${order.coupon_code || 'كود خصم'}):</td>
+                  <td style="font-weight: 800; color: #C53030;">- ${order.discount_amount} ر.ي</td>
+                </tr>
+                ` : ''}
                 <tr>
                   <td colspan="4" style="text-align: left; font-weight: 700;">رسوم الشحن والتوصيل (مدينة البيضاء / المحافظات):</td>
                   <td style="font-weight: 800; color: #10B981;">مضمون / مجاني</td>
@@ -1455,6 +1461,7 @@
                 </tr>
               </tbody>
             </table>
+
 
 
             <div style="margin-top: 40px; border-top: 2px dashed #E2E8F0; padding-top: 15px; text-align: center; font-size: 13px; color: #64748B;">

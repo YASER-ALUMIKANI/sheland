@@ -1159,9 +1159,11 @@ async function submitOrderProcess() {
       
       // Save order to customer account history
       const prevOrders = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
-      const orderTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      prevOrders.unshift({ number: num, date: new Date().toISOString(), status: 'قيد المعالجة', total: orderTotal });
+      const grossTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const netTotal = orderData.total_amount ?? Math.max(0, grossTotal - (activeDiscountAmount || 0));
+      prevOrders.unshift({ number: num, date: new Date().toISOString(), status: 'قيد المعالجة', total: netTotal, discount: activeDiscountAmount });
       localStorage.setItem('sheland_user_orders', JSON.stringify(prevOrders));
+
     } else {
 
       // ponytail: display the exact stock error from the backend — do NOT fake order number
