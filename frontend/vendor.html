@@ -412,6 +412,13 @@
 
     async function handleExcelImport(e) {
       e.preventDefault();
+      const token = localStorage.getItem('sheland_jwt_token');
+      if (!token) {
+        alert('⚠️ يلزم تسجيل الدخول لبوابة التجار أولاً لتتمكن من استيراد المنتجات');
+        showVendorAuthModal();
+        return;
+      }
+
       const fileInput = document.getElementById('excelFileDrop');
       const reportBox = document.getElementById('excelImportReport');
       if (!fileInput.files || fileInput.files.length === 0) return;
@@ -431,27 +438,41 @@
           headers: getAuthHeaders(),
           body: formData
         });
-        const data = await res.json();
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          data = { detail: `رمز الخطأ: ${res.status}` };
+        }
+
         if (res.ok) {
           reportBox.style.background = '#C6F6D5';
           reportBox.style.color = '#22543D';
-          let msg = `🎉 ${data.message}`;
+          let msg = `🎉 ${data.message || 'تم استيراد البيانات بنجاح'}`;
           if (data.failed_count > 0) {
             msg += ` (تنبيه: تم تجاوز ${data.failed_count} صف ببيانات غير مكتملة)`;
           }
           reportBox.innerText = msg;
           fileInput.value = '';
-          alert(`🎉 ${data.message}`);
+          alert(`🎉 ${data.message || 'تم استيراد المنتجات بنجاح!'}`);
           checkVendorAuth();
+        } else if (res.status === 401) {
+          reportBox.style.background = '#FED7D7';
+          reportBox.style.color = '#9B2C2C';
+          reportBox.innerText = '❌ انتهت جلسة الدخول أو أن الحساب غير مصرح له، يرجى إعادة تسجيل الدخول';
+          alert('⚠️ انتهت جلسة الدخول، يرجى تسجيل الدخول مجدداً');
+          showVendorAuthModal();
         } else {
           reportBox.style.background = '#FED7D7';
           reportBox.style.color = '#9B2C2C';
           reportBox.innerText = `❌ ${data.detail || 'حدث خطأ أثناء استيراد الملف'}`;
         }
       } catch (err) {
+        console.error("Excel import error:", err);
         reportBox.style.background = '#FED7D7';
         reportBox.style.color = '#9B2C2C';
-        reportBox.innerText = '❌ تعذر الاتصال بالسيرفر أثناء رفع الملف';
+        reportBox.innerText = `❌ تعذر الاتصال بالسيرفر أثناء رفع الملف (${err.message || 'خطأ شبكة'})`;
       }
     }
 
