@@ -113,6 +113,28 @@
       </div>
     </div>
 
+    <!-- Excel Bulk Product Import Card -->
+    <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--primary-dark); margin: 0;">📊 إضافة واستيراد المنتجات بالجملة (Excel / CSV)</h3>
+          <p style="font-size: 12px; color: #666; margin: 4px 0 0 0;">استورد مئات المنتجات دفعة واحدة بملف إكسل واحد مع سعر التكلفة والمخزون والشحن</p>
+        </div>
+        <a href="/api/products/excel-template" download style="background: var(--primary); color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          📥 تحميل قالب Excel الجاهز
+        </a>
+      </div>
+
+      <form id="excelImportForm" onsubmit="handleExcelImport(event)" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="file" id="excelFileDrop" accept=".xlsx, .xls, .csv" required style="flex: 1; min-width: 240px; padding: 10px; border: 2px dashed #CBD5E0; border-radius: 8px; background: #F7FAFC; font-size: 13px;">
+        <button type="submit" style="background: var(--success); color: white; border: none; padding: 11px 20px; border-radius: 8px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          رفع واستيراد البيانات 🚀
+        </button>
+      </form>
+
+      <div id="excelImportReport" style="display: none; margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 700;"></div>
+    </div>
+
     <!-- Vendor Product Form -->
     <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-top: 24px;">
       <h3 style="font-weight: 800; color: var(--primary-dark); margin-bottom: 16px;">🏬 بيانات التاجر والمنتج الجديد</h3>
@@ -386,6 +408,51 @@
 
       errBox.innerText = "❌ تعذر الاتصال بالسيرفر، يرجى المحاولة لاحقاً";
       errBox.style.display = 'block';
+    }
+
+    async function handleExcelImport(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('excelFileDrop');
+      const reportBox = document.getElementById('excelImportReport');
+      if (!fileInput.files || fileInput.files.length === 0) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      reportBox.style.display = 'block';
+      reportBox.style.background = '#EBF8FF';
+      reportBox.style.color = '#2B6CB0';
+      reportBox.innerText = '⏳ جاري قراءة ملف الإكسل وإدراج المنتجات بأسعار التكلفة والمخزون...';
+
+      try {
+        const res = await fetch(`${API_BASE}/products/import-excel`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          reportBox.style.background = '#C6F6D5';
+          reportBox.style.color = '#22543D';
+          let msg = `🎉 ${data.message}`;
+          if (data.failed_count > 0) {
+            msg += ` (تنبيه: تم تجاوز ${data.failed_count} صف ببيانات غير مكتملة)`;
+          }
+          reportBox.innerText = msg;
+          fileInput.value = '';
+          alert(`🎉 ${data.message}`);
+          checkVendorAuth();
+        } else {
+          reportBox.style.background = '#FED7D7';
+          reportBox.style.color = '#9B2C2C';
+          reportBox.innerText = `❌ ${data.detail || 'حدث خطأ أثناء استيراد الملف'}`;
+        }
+      } catch (err) {
+        reportBox.style.background = '#FED7D7';
+        reportBox.style.color = '#9B2C2C';
+        reportBox.innerText = '❌ تعذر الاتصال بالسيرفر أثناء رفع الملف';
+      }
     }
 
     function vendorLogout() {

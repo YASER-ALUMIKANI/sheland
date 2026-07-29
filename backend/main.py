@@ -6,13 +6,17 @@ Sheland Backend - FastAPI Main Application
 import uuid
 import os
 import shutil
+import io
+import csv
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 
 from .database import Base, engine, get_db
 from . import models, schemas, analytics, auth
@@ -299,6 +303,251 @@ def get_products(
 
     products = query.all()
     return [schemas.ProductResponse.from_orm_with_stock(p) for p in products]
+
+
+# --- Excel Bulk Import & Template Endpoints ---
+
+EXCEL_HEADERS = [
+    ("title_ar", "اسم المنتج (عربي) *"),
+    ("title_en", "اسم المنتج (إنجليزي)"),
+    ("category", "القسم / التصنيف *"),
+    ("price", "سعر البيع النهائي (ر.ي) *"),
+    ("compare_at_price", "السعر قبل الخصم (ر.ي)"),
+    ("cost_price", "سعر التكلفة على البائع (ر.ي)"),
+    ("stock", "الكمية المتوفرة بالمخزون *"),
+    ("sku", "رمز التخزين SKU"),
+    ("image_url", "رابط صورة المنتج *"),
+    ("description", "وصف وتفاصيل المنتج"),
+    ("color", "اللون"),
+    ("size", "المقاس"),
+    ("free_shipping", "شحن مجاني (نعم/لا)"),
+    ("cod_available", "دفع عند الاستلام (نعم/لا)")
+]
+
+@app.get("/api/products/excel-template")
+def download_excel_template():
+    """Generates an official styled Excel template workbook for bulk product upload."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "قالب استيراد المنتجات"
+    ws.views.sheetView[0].rightToLeft = True
+
+    header_fill = PatternFill(start_color="5C2C77", end_color="5C2C77", fill_type="solid")
+    header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    cell_font = Font(name="Segoe UI", size=10)
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx, (field_key, header_title) in enumerate(EXCEL_HEADERS, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=header_title)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = align_center
+
+    sample_data = [
+        [
+            "فستان سهرة أنيق ومميز", "Elegant Evening Dress", "أزياء نسائية",
+            12500, 18000, 8500, 25, "DRS-LUX-01",
+            "https://images.unsplash.com/photo-1566174053879-31528523f8ae",
+            "فستان سهرة فاخر من القماش المخملي العالي الجودة", "أسود", "L", "نعم", "نعم"
+        ],
+        [
+            "قميص رجالي كلاسيكي قطن", "Classic Men Cotton Shirt", "أزياء رجالية",
+            6800, 9500, 4200, 40, "SHRT-M-02",
+            "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf",
+            "قميص قطن 100% مناسب للمناسبات والعمل", "أزرق", "XL", "نعم", "نعم"
+        ]
+    ]
+
+    for row_idx, row_values in enumerate(sample_data, start=2):
+        for col_idx, val in enumerate(row_values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = cell_font
+
+    for col_idx in range(1, len(EXCEL_HEADERS) + 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = 24
+
+    ws.row_dimensions[1].height = 30
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    headers = {"Content-Disposition": "attachment; filename=sheland_products_template.xlsx"}
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )
+
+
+@app.post("/api/products/import-excel")
+def import_products_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["seller", "admin", "super_admin"]))
+):
+    """Parses uploaded Excel (.xlsx) or CSV (.csv) file and imports products in bulk."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="يرجى رفع ملف صحيح")
+
+    ext = file.filename.split(".")[-1].lower()
+    if ext not in ["xlsx", "xls", "csv"]:
+        raise HTTPException(status_code=400, detail="نوع الملف غير مدعوم، يرجى اختيار ملف Excel (.xlsx) أو CSV (.csv)")
+
+    contents = file.file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)")
+
+    seller_id = None
+    if current_user.role == "seller":
+        seller = db.query(models.Seller).filter(models.Seller.user_id == current_user.id).first()
+        if not seller:
+            seller = models.Seller(user_id=current_user.id, store_name=f"متجر {current_user.name}")
+            db.add(seller)
+            db.commit()
+            db.refresh(seller)
+        seller_id = seller.id
+    else:
+        seller = db.query(models.Seller).first()
+        seller_id = seller.id if seller else 1
+
+    rows_data = []
+    if ext in ["xlsx", "xls"]:
+        wb = openpyxl.load_workbook(filename=io.BytesIO(contents), data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows or len(all_rows) < 2:
+            raise HTTPException(status_code=400, detail="ملف الإكسل فارغ أو لا يحتوي على صفوف بيانات")
+        
+        headers_row = [str(cell or "").strip().lower() for cell in all_rows[0]]
+        for r in all_rows[1:]:
+            if any(r):
+                row_dict = {headers_row[i]: r[i] for i in range(min(len(headers_row), len(r)))}
+                rows_data.append(row_dict)
+    else:
+        text = contents.decode("utf-8-sig", errors="ignore")
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            clean_row = {str(k or "").strip().lower(): v for k, v in row.items()}
+            rows_data.append(clean_row)
+
+    if not rows_data:
+        raise HTTPException(status_code=400, detail="لم يتم العثور على بيانات منتجات قابلة للاستيراد بداخل الملف")
+
+    def get_val(row_map, *keys):
+        for k in keys:
+            for map_key, val in row_map.items():
+                if k in map_key and val is not None:
+                    return val
+        return None
+
+    imported_count = 0
+    failed_count = 0
+    errors = []
+
+    for idx, row in enumerate(rows_data, start=2):
+        title_ar = get_val(row, "title_ar", "اسم المنتج", "عربي", "اسم")
+        price_val = get_val(row, "price", "سعر البيع", "السعر")
+        category_val = get_val(row, "category", "القسم", "التصنيف")
+
+        if not title_ar or price_val is None:
+            failed_count += 1
+            errors.append(f"الصف {idx}: تم التجاوز لعدم وجود اسم المنتج أو السعر")
+            continue
+
+        try:
+            price = float(price_val)
+        except ValueError:
+            failed_count += 1
+            errors.append(f"الصف {idx}: السعر غير صحيح ({price_val})")
+            continue
+
+        title_ar = str(title_ar).strip()
+        title_en = str(get_val(row, "title_en", "إنجليزي", "english") or title_ar).strip()
+
+        category = None
+        if category_val:
+            cat_str = str(category_val).strip()
+            category = db.query(models.Category).filter(
+                (models.Category.name_ar == cat_str) |
+                (models.Category.name_en == cat_str) |
+                (models.Category.slug == cat_str.lower())
+            ).first()
+
+        if not category:
+            category = db.query(models.Category).first()
+            if not category:
+                category = models.Category(name_ar="عام", name_en="General", slug="general")
+                db.add(category)
+                db.commit()
+                db.refresh(category)
+
+        compare_at = get_val(row, "compare_at_price", "قبل الخصم", "compare")
+        cost_p = get_val(row, "cost_price", "التكلفة", "cost")
+        stock_val = get_val(row, "stock", "المخزون", "الكمية")
+        img_url = get_val(row, "image_url", "صورة", "رابط") or "https://images.unsplash.com/photo-1523275335684-37898b6baf30"
+        desc = get_val(row, "description", "وصف", "تفاصيل")
+        sku_val = get_val(row, "sku", "رمز", "كود")
+        color_val = get_val(row, "color", "اللون")
+        size_val = get_val(row, "size", "المقاس")
+        free_shipping = str(get_val(row, "free_shipping", "شحن") or "نعم").strip().lower() not in ["لا", "false", "0", "no"]
+        cod_avail = str(get_val(row, "cod_available", "دفع") or "نعم").strip().lower() not in ["لا", "false", "0", "no"]
+
+        try:
+            compare_price = float(compare_at) if compare_at is not None and str(compare_at).strip() != "" else None
+        except ValueError:
+            compare_price = None
+
+        try:
+            cost_price = float(cost_p) if cost_p is not None and str(cost_p).strip() != "" else 0.0
+        except ValueError:
+            cost_price = 0.0
+
+        try:
+            stock = int(float(stock_val)) if stock_val is not None and str(stock_val).strip() != "" else 10
+        except ValueError:
+            stock = 10
+
+        slug = f"{uuid.uuid4().hex[:8]}-{title_ar.replace(' ', '-')}"
+
+        db_product = models.Product(
+            seller_id=seller_id,
+            category_id=category.id,
+            title_ar=title_ar,
+            title_en=title_en,
+            slug=slug,
+            description=str(desc) if desc else None,
+            price=price,
+            compare_at_price=compare_price,
+            cost_price=cost_price,
+            image_url=str(img_url).strip(),
+            free_shipping=free_shipping,
+            cod_available=cod_avail,
+            is_featured=False
+        )
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+
+        db_variant = models.ProductVariant(
+            product_id=db_product.id,
+            sku=str(sku_val).strip() if sku_val else f"SKU-{db_product.id}",
+            color=str(color_val).strip() if color_val else None,
+            size=str(size_val).strip() if size_val else None,
+            stock=stock
+        )
+        db.add(db_variant)
+        db.commit()
+
+        imported_count += 1
+
+    return {
+        "status": "success",
+        "message": f"تم استيراد {imported_count} منتج بنجاح!",
+        "imported_count": imported_count,
+        "failed_count": failed_count,
+        "errors": errors
+    }
 
 
 @app.get("/api/products/{product_id}", response_model=schemas.ProductResponse)
