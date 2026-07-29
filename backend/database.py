@@ -1,20 +1,37 @@
 """
 Sheland Backend - Database Connection Setup
-# ponytail: Simple SQLite engine using standard SQLAlchemy context manager
+# ponytail: Dual-mode SQLAlchemy engine supporting PostgreSQL (Production/Render) & SQLite (Local/Test).
 """
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "sheland.db")
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+# Read DATABASE_URL from environment variable or default to local SQLite
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+if DATABASE_URL:
+    # Fix Render/Heroku legacy "postgres://" prefix to SQLAlchemy 2.0 "postgresql://"
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    SQLALCHEMY_DATABASE_URL = DATABASE_URL
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True
+    )
+else:
+    DB_PATH = os.path.join(os.path.dirname(__file__), "sheland.db")
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# ponytail: Ensure SQLite schema compatibility for new parcel columns
+# Schema column migration check for existing tables
 try:
     with engine.connect() as conn:
         from sqlalchemy import text
@@ -26,7 +43,6 @@ try:
                 pass
 except Exception:
     pass
-
 
 Base = declarative_base()
 
