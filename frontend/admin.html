@@ -828,6 +828,21 @@
       };
     }
 
+    // ponytail: shared tiny helpers used by coupon UI
+    function escapeAdminHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showAdminToast(msg, type = 'success') {
+      const colors = { success: '#1A7A4C', error: '#D83A3A', warning: '#F59E0B', info: '#4A154B' };
+      const t = document.createElement('div');
+      t.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:${colors[type]||colors.info};color:white;padding:10px 22px;border-radius:10px;font-weight:700;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.2);animation:fadeIn .2s ease;`;
+      t.innerText = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
     // ================================================================
     // Coupons Management Functions
     // ================================================================
