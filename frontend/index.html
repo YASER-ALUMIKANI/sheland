@@ -761,6 +761,7 @@
       <div style="display: flex; gap: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
         <button id="tabBtnAccountOrders" onclick="switchAccountSubTab('orders')" style="padding: 8px 16px; border: none; background: var(--primary); color: white; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">📦 طلباتي الشراء وتتبعها</button>
         <button id="tabBtnAccountProfile" onclick="switchAccountSubTab('profile')" style="padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">⚙️ بياناتي ورقم الجوال المسجل</button>
+        <button id="tabBtnAccountAuth" onclick="switchAccountSubTab('auth')" style="padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">🔑 تسجيل الدخول / حساب جديد</button>
       </div>
 
       <!-- Section 1: Customer Orders History -->
@@ -800,6 +801,52 @@
             </div>
 
             <button type="submit" style="width: 100%; background: var(--success); color: white; font-weight: 800; padding: 10px; border-radius: 6px; border: none; font-size: 14px; cursor: pointer;">💾 حفظ بيانات الحساب واعتتماد الرقم الجوال</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Section 3: Customer Login / Register -->
+      <div id="accSubTabAuth" style="display: none;">
+        <div style="background: #F8F9FA; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <button id="cAuthTabLoginBtn" onclick="switchCustomerAuthForm('login')" style="flex: 1; padding: 8px; border: none; background: var(--primary); color: white; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">تسجيل الدخول</button>
+            <button id="cAuthTabRegBtn" onclick="switchCustomerAuthForm('register')" style="flex: 1; padding: 8px; border: 1px solid #CCC; background: white; color: #333; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">إنشاء حساب جديد</button>
+          </div>
+
+          <!-- Customer Login Form -->
+          <form id="custLoginForm" onsubmit="handleCustomerLogin(event)">
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">البريد الإلكتروني أو رقم الجوال:</label>
+              <input type="text" id="custLoginEmail" required placeholder="example@gmail.com أو 0770000000" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">كلمة المرور:</label>
+              <input type="password" id="custLoginPass" required placeholder="••••••••" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div id="custLoginError" style="display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-bottom: 10px; background: #FFEBEE; padding: 6px; border-radius: 4px;"></div>
+            <button type="submit" style="width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 800; font-size: 14px; cursor: pointer;">تسجيل الدخول 🔑</button>
+          </form>
+
+          <!-- Customer Register Form -->
+          <form id="custRegisterForm" onsubmit="handleCustomerRegister(event)" style="display: none;">
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">الاسم الكامل:</label>
+              <input type="text" id="custRegName" required placeholder="محمد أحمد" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">البريد الإلكتروني:</label>
+              <input type="email" id="custRegEmail" required placeholder="user@gmail.com" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">رقم الجوال (الواتساب):</label>
+              <input type="tel" id="custRegPhone" required placeholder="0770000000" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">كلمة المرور:</label>
+              <input type="password" id="custRegPass" required minlength="6" placeholder="••••••••" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div id="custRegError" style="display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-bottom: 10px; background: #FFEBEE; padding: 6px; border-radius: 4px;"></div>
+            <button type="submit" style="width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 800; font-size: 14px; cursor: pointer;">إنشاء حساب عميل ✨</button>
           </form>
         </div>
       </div>

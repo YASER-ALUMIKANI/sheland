@@ -11,6 +11,60 @@
 </head>
 <body class="admin-body">
 
+  <!-- Vendor Auth Modal Overlay -->
+  <div id="vendorAuthModal" class="modal-overlay" style="display: flex; position: fixed; inset: 0; background: rgba(15,12,25,0.94); backdrop-filter: blur(12px); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; width: 90%; max-width: 440px; border-radius: 16px; padding: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; border: 2px solid var(--primary);">
+      <div style="width: 60px; height: 60px; background: var(--accent); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px auto;">🏬</div>
+      <h2 style="font-size: 20px; font-weight: 900; color: var(--primary-dark); margin-bottom: 6px;">بوابة التجار والبائعين</h2>
+      <p style="font-size: 13px; color: #666; margin-bottom: 20px;">قم بتسجيل الدخول أو إنشاء حساب بائع جديد لإضافة منتجاتك</p>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 2px solid #EEE; padding-bottom: 10px;">
+        <button id="vTabLogin" onclick="switchVendorAuthTab('login')" style="flex: 1; padding: 8px; border: none; background: var(--primary); color: white; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">تسجيل الدخول</button>
+        <button id="vTabRegister" onclick="switchVendorAuthTab('register')" style="flex: 1; padding: 8px; border: 1px solid #CCC; background: #F8F9FA; color: #333; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer;">حساب بائع جديد</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="vendorLoginForm" onsubmit="handleVendorLogin(event)">
+        <div style="text-align: right; margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">البريد الإلكتروني أو رقم الجوال:</label>
+          <input type="text" id="vLoginEmail" required placeholder="seller@sheland.com" style="width: 100%; padding: 10px 14px; border: 1px solid #CCC; border-radius: 8px; font-size: 14px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">كلمة المرور:</label>
+          <input type="password" id="vLoginPass" required placeholder="••••••••" style="width: 100%; padding: 10px 14px; border: 1px solid #CCC; border-radius: 8px; font-size: 14px;">
+        </div>
+        <div id="vLoginError" style="display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-bottom: 12px; background: #FFEBEE; padding: 8px; border-radius: 6px;"></div>
+        <button type="submit" style="width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 800; font-size: 14px; cursor: pointer;">تسجيل الدخول للتجار 🔑</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="vendorRegisterForm" onsubmit="handleVendorRegister(event)" style="display: none;">
+        <div style="text-align: right; margin-bottom: 10px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">اسم المورد / البائع:</label>
+          <input type="text" id="vRegName" required placeholder="مؤسسة الأمل للتجارة" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 13px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 10px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">البريد الإلكتروني التجاري:</label>
+          <input type="email" id="vRegEmail" required placeholder="vendor@mycompany.com" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 13px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 10px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">رقم الواتساب الرسمي:</label>
+          <input type="tel" id="vRegPhone" required placeholder="0770000000" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 13px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">كلمة المرور:</label>
+          <input type="password" id="vRegPass" required minlength="6" placeholder="••••••••" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 13px;">
+        </div>
+        <div id="vRegError" style="display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-bottom: 12px; background: #FFEBEE; padding: 8px; border-radius: 6px;"></div>
+        <button type="submit" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 800; font-size: 14px; cursor: pointer;">إنشاء حساب بائع 🏬</button>
+      </form>
+
+      <div style="margin-top: 14px; font-size: 11px; color: #777; background: #F8F9FA; padding: 6px; border-radius: 6px;">
+        💡 الحساب الافتراضي للتجار: البريد <b>seller@sheland.com</b> كلمة السر <b>seller123</b>
+      </div>
+    </div>
+  </div>
+
   <!-- Vendor Header -->
   <header class="admin-header">
     <div class="container admin-header-flex">
@@ -18,8 +72,10 @@
         <div class="logo-icon" style="width:34px; height:34px; font-size:18px;">🏬</div>
         <span>بوابة بائعي شي لاند المعتمدين (Sheland Vendor Portal)</span>
       </div>
-      <div>
-        <a href="/" target="_blank" style="background: rgba(255,255,255,0.15); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px;">👁️ العودة للمتجر</a>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span id="vendorUserDisplay" style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-weight: 700;">🏬 متجر المورد</span>
+        <button onclick="vendorLogout()" style="background: var(--danger); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;">تسجيل الخروج 🔒</button>
+        <a href="/" target="_blank" style="background: rgba(255,255,255,0.15); color: white; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px;">👁️ العودة للمتجر</a>
       </div>
     </div>
   </header>
@@ -187,6 +243,148 @@
         window.location.href = "/";
       }
     }
+
+    async function checkVendorAuth() {
+      const token = localStorage.getItem('sheland_jwt_token');
+      if (!token) {
+        showVendorAuthModal();
+        return false;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const user = await res.json();
+          if (['seller', 'admin', 'super_admin'].includes(user.role)) {
+            hideVendorAuthModal();
+            if (document.getElementById('vendorUserDisplay')) {
+              document.getElementById('vendorUserDisplay').innerText = `🏬 ${user.name} (${user.role})`;
+            }
+            if (document.getElementById('vpStoreName')) {
+              document.getElementById('vpStoreName').value = user.name;
+            }
+            if (document.getElementById('vpPhone') && user.phone) {
+              document.getElementById('vpPhone').value = user.phone;
+            }
+            return true;
+          }
+        }
+      } catch (err) {
+        console.log("Vendor auth check error:", err);
+      }
+      showVendorAuthModal();
+      return false;
+    }
+
+    function showVendorAuthModal() {
+      if (document.getElementById('vendorAuthModal')) {
+        document.getElementById('vendorAuthModal').style.display = 'flex';
+      }
+    }
+
+    function hideVendorAuthModal() {
+      if (document.getElementById('vendorAuthModal')) {
+        document.getElementById('vendorAuthModal').style.display = 'none';
+      }
+    }
+
+    function switchVendorAuthTab(tab) {
+      const loginForm = document.getElementById('vendorLoginForm');
+      const regForm = document.getElementById('vendorRegisterForm');
+      const tabLogin = document.getElementById('vTabLogin');
+      const tabReg = document.getElementById('vTabRegister');
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        regForm.style.display = 'none';
+        tabLogin.style.background = 'var(--primary)';
+        tabLogin.style.color = 'white';
+        tabReg.style.background = '#F8F9FA';
+        tabReg.style.color = '#333';
+      } else {
+        loginForm.style.display = 'none';
+        regForm.style.display = 'block';
+        tabReg.style.background = 'var(--primary)';
+        tabReg.style.color = 'white';
+        tabLogin.style.background = '#F8F9FA';
+        tabLogin.style.color = '#333';
+      }
+    }
+
+    async function handleVendorLogin(e) {
+      e.preventDefault();
+      const email_or_phone = document.getElementById('vLoginEmail').value.trim();
+      const password = document.getElementById('vLoginPass').value.trim();
+      const errBox = document.getElementById('vLoginError');
+      errBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email_or_phone, password })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (['seller', 'admin', 'super_admin'].includes(data.user.role)) {
+            localStorage.setItem('sheland_jwt_token', data.access_token);
+            localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+            hideVendorAuthModal();
+            checkVendorAuth();
+            return;
+          } else {
+            errBox.innerText = "❌ هذا الحساب ليس لديه صلاحية الوصول لبوابة التجار";
+            errBox.style.display = 'block';
+            return;
+          }
+        }
+      } catch (err) {}
+
+      errBox.innerText = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
+      errBox.style.display = 'block';
+    }
+
+    async function handleVendorRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('vRegName').value.trim();
+      const email = document.getElementById('vRegEmail').value.trim();
+      const phone = document.getElementById('vRegPhone').value.trim();
+      const password = document.getElementById('vRegPass').value.trim();
+      const errBox = document.getElementById('vRegError');
+      errBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone, password, role: 'seller' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('sheland_jwt_token', data.access_token);
+          localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+          hideVendorAuthModal();
+          checkVendorAuth();
+          alert("🎉 تم إنشاء حساب المورد والتسجيل بنجاح!");
+          return;
+        } else {
+          const data = await res.json();
+          errBox.innerText = `❌ ${data.detail || "حدث خطأ أثناء التسجيل"}`;
+          errBox.style.display = 'block';
+          return;
+        }
+      } catch (err) {}
+
+      errBox.innerText = "❌ تعذر الاتصال بالسيرفر، يرجى المحاولة لاحقاً";
+      errBox.style.display = 'block';
+    }
+
+    function vendorLogout() {
+      localStorage.removeItem('sheland_jwt_token');
+      localStorage.removeItem('sheland_user_data');
+      location.reload();
+    }
+
+    document.addEventListener("DOMContentLoaded", checkVendorAuth);
   </script>
 </body>
 </html>

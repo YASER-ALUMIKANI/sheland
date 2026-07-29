@@ -1077,19 +1077,124 @@ async function handleVendorAddProduct(e) {
 function switchAccountSubTab(subTab) {
   const ordersDiv = document.getElementById('accSubTabOrders');
   const profileDiv = document.getElementById('accSubTabProfile');
+  const authDiv = document.getElementById('accSubTabAuth');
   const btnOrders = document.getElementById('tabBtnAccountOrders');
   const btnProfile = document.getElementById('tabBtnAccountProfile');
+  const btnAuth = document.getElementById('tabBtnAccountAuth');
+
+  if (ordersDiv) ordersDiv.style.display = 'none';
+  if (profileDiv) profileDiv.style.display = 'none';
+  if (authDiv) authDiv.style.display = 'none';
+
+  if (btnOrders) { btnOrders.style.background = 'var(--surface)'; btnOrders.style.color = 'var(--text)'; btnOrders.style.border = '1px solid var(--border)'; }
+  if (btnProfile) { btnProfile.style.background = 'var(--surface)'; btnProfile.style.color = 'var(--text)'; btnProfile.style.border = '1px solid var(--border)'; }
+  if (btnAuth) { btnAuth.style.background = 'var(--surface)'; btnAuth.style.color = 'var(--text)'; btnAuth.style.border = '1px solid var(--border)'; }
 
   if (subTab === 'orders') {
     if (ordersDiv) ordersDiv.style.display = 'block';
-    if (profileDiv) profileDiv.style.display = 'none';
     if (btnOrders) { btnOrders.style.background = 'var(--primary)'; btnOrders.style.color = 'white'; btnOrders.style.border = 'none'; }
-    if (btnProfile) { btnProfile.style.background = 'var(--surface)'; btnProfile.style.color = 'var(--text)'; btnProfile.style.border = '1px solid var(--border)'; }
-  } else {
-    if (ordersDiv) ordersDiv.style.display = 'none';
+  } else if (subTab === 'profile') {
     if (profileDiv) profileDiv.style.display = 'block';
     if (btnProfile) { btnProfile.style.background = 'var(--primary)'; btnProfile.style.color = 'white'; btnProfile.style.border = 'none'; }
-    if (btnOrders) { btnOrders.style.background = 'var(--surface)'; btnOrders.style.color = 'var(--text)'; btnOrders.style.border = '1px solid var(--border)'; }
+  } else if (subTab === 'auth') {
+    if (authDiv) authDiv.style.display = 'block';
+    if (btnAuth) { btnAuth.style.background = 'var(--primary)'; btnAuth.style.color = 'white'; btnAuth.style.border = 'none'; }
+  }
+}
+
+function switchCustomerAuthForm(formType) {
+  const loginForm = document.getElementById('custLoginForm');
+  const regForm = document.getElementById('custRegisterForm');
+  const btnLogin = document.getElementById('cAuthTabLoginBtn');
+  const btnReg = document.getElementById('cAuthTabRegBtn');
+
+  if (formType === 'login') {
+    if (loginForm) loginForm.style.display = 'block';
+    if (regForm) regForm.style.display = 'none';
+    if (btnLogin) { btnLogin.style.background = 'var(--primary)'; btnLogin.style.color = 'white'; }
+    if (btnReg) { btnReg.style.background = 'white'; btnReg.style.color = '#333'; }
+  } else {
+    if (loginForm) loginForm.style.display = 'none';
+    if (regForm) regForm.style.display = 'block';
+    if (btnReg) { btnReg.style.background = 'var(--primary)'; btnReg.style.color = 'white'; }
+    if (btnLogin) { btnLogin.style.background = 'white'; btnLogin.style.color = '#333'; }
+  }
+}
+
+async function handleCustomerLogin(e) {
+  e.preventDefault();
+  const email_or_phone = document.getElementById('custLoginEmail').value.trim();
+  const password = document.getElementById('custLoginPass').value.trim();
+  const errBox = document.getElementById('custLoginError');
+  if (errBox) errBox.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_or_phone, password })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('sheland_jwt_token', data.access_token);
+      localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+      localStorage.setItem('sheland_user_name', data.user.name);
+      if (data.user.phone) localStorage.setItem('sheland_user_phone', data.user.phone);
+
+      showToast(`مرحباً بك مجدداً ${data.user.name} 👋`, 'success', '🔑');
+      switchAccountSubTab('orders');
+      fetchAccountOrdersByPhone();
+      return;
+    }
+  } catch (err) {}
+
+  if (errBox) {
+    errBox.innerText = "❌ البريد/الجوال أو كلمة المرور غير صحيحة";
+    errBox.style.display = 'block';
+  }
+}
+
+async function handleCustomerRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('custRegName').value.trim();
+  const email = document.getElementById('custRegEmail').value.trim();
+  const phone = document.getElementById('custRegPhone').value.trim();
+  const password = document.getElementById('custRegPass').value.trim();
+  const errBox = document.getElementById('custRegError');
+  if (errBox) errBox.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, password, role: 'customer' })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('sheland_jwt_token', data.access_token);
+      localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+      localStorage.setItem('sheland_user_name', data.user.name);
+      localStorage.setItem('sheland_user_phone', data.user.phone);
+
+      showToast(`🎉 أهلاً بك عضو جديد منصتنا ${data.user.name}!`, 'success', '✨');
+      switchAccountSubTab('orders');
+      fetchAccountOrdersByPhone();
+      return;
+    } else {
+      const data = await res.json();
+      if (errBox) {
+        errBox.innerText = `❌ ${data.detail || "تعذر التسجيل"}`;
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+  } catch (err) {}
+
+  if (errBox) {
+    errBox.innerText = "❌ تعذر الاتصال بالسيرفر";
+    errBox.style.display = 'block';
   }
 }
 

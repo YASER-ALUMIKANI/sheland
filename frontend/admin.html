@@ -171,6 +171,36 @@
 </head>
 <body class="admin-body">
 
+  <!-- Admin Login Modal Overlay -->
+  <div id="adminLoginModal" class="modal-overlay" style="display: flex; position: fixed; inset: 0; background: rgba(15,12,25,0.94); backdrop-filter: blur(12px); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; width: 90%; max-width: 440px; border-radius: 16px; padding: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; border: 2px solid var(--primary);">
+      <div style="width: 60px; height: 60px; background: var(--accent); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px auto;">⚙️</div>
+      <h2 style="font-size: 20px; font-weight: 900; color: var(--primary-dark); margin-bottom: 6px;">لوحة تحكم إدارة Sheland</h2>
+      <p style="font-size: 13px; color: #666; margin-bottom: 24px;">يرجى إدخال اسم المستخدم وكلمة المرور الخاصة بالإدارة للدخول</p>
+
+      <form onsubmit="handleAdminLogin(event)">
+        <div style="text-align: right; margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">البريد الإلكتروني أو رقم الجوال:</label>
+          <input type="text" id="adminLoginEmail" required placeholder="admin@sheland.com" style="width: 100%; padding: 10px 14px; border: 1px solid #CCC; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="text-align: right; margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px; color: #333;">كلمة المرور:</label>
+          <input type="password" id="adminLoginPass" required placeholder="••••••••" style="width: 100%; padding: 10px 14px; border: 1px solid #CCC; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div id="adminLoginError" style="display: none; color: var(--danger); font-size: 13px; font-weight: 700; margin-bottom: 14px; background: #FFEBEE; padding: 8px; border-radius: 6px;">
+          ❌ بيانات الدخول غير صحيحة!
+        </div>
+
+        <button type="submit" style="width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer;">تسجيل الدخول 🔑</button>
+      </form>
+      <div style="margin-top: 16px; font-size: 11px; color: #777; background: #F8F9FA; padding: 8px; border-radius: 6px; border: 1px solid #EEE;">
+        💡 بيانات دخول المدير الافتراضية: البريد <b>admin@sheland.com</b> كلمة السر <b>admin123</b>
+      </div>
+    </div>
+  </div>
+
   <!-- Admin Header -->
   <header class="admin-header">
     <div class="container admin-header-flex">
@@ -179,8 +209,9 @@
         <span>لوحة تحكم إدارة Sheland</span>
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
-        <span id="adminSessionTag" style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px;">🔒 الجلسة محمية</span>
-        <a href="/" target="_blank" style="background: rgba(255,255,255,0.15); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px;">👁️ معاينة المتجر المباشر</a>
+        <span id="adminUserDisplay" style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-weight: 700;">👤 مدير النظام</span>
+        <button onclick="adminLogout()" style="background: var(--danger); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;">تسجيل الخروج 🔒</button>
+        <a href="/" target="_blank" style="background: rgba(255,255,255,0.15); color: white; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px;">👁️ معاينة المتجر</a>
       </div>
     </div>
   </header>
@@ -688,7 +719,94 @@
       if (document.getElementById('kpiFulfillmentTime')) document.getElementById('kpiFulfillmentTime').innerText = `${data.operations.avg_fulfillment_hours} ساعة`;
     }
 
-    function initAdminUI() {
+    async function checkAdminAuth() {
+      const token = localStorage.getItem('sheland_jwt_token');
+      if (!token) {
+        showAdminLoginModal();
+        return false;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const user = await res.json();
+          if (['admin', 'super_admin', 'sales_manager'].includes(user.role)) {
+            hideAdminLoginModal();
+            if (document.getElementById('adminUserDisplay')) {
+              document.getElementById('adminUserDisplay').innerText = `👤 ${user.name} (${user.role})`;
+            }
+            return true;
+          }
+        }
+      } catch (err) {
+        console.log("Auth check error:", err);
+      }
+      showAdminLoginModal();
+      return false;
+    }
+
+    function showAdminLoginModal() {
+      if (document.getElementById('adminLoginModal')) {
+        document.getElementById('adminLoginModal').style.display = 'flex';
+      }
+    }
+
+    function hideAdminLoginModal() {
+      if (document.getElementById('adminLoginModal')) {
+        document.getElementById('adminLoginModal').style.display = 'none';
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email_or_phone = document.getElementById('adminLoginEmail').value.trim();
+      const password = document.getElementById('adminLoginPass').value.trim();
+      const errBox = document.getElementById('adminLoginError');
+
+      if (errBox) errBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email_or_phone, password })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (['admin', 'super_admin', 'sales_manager'].includes(data.user.role)) {
+            localStorage.setItem('sheland_jwt_token', data.access_token);
+            localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+            hideAdminLoginModal();
+            initAdminUI();
+            return;
+          } else {
+            if (errBox) {
+              errBox.innerText = "❌ هذا الحساب ليس لديه صلاحية الوصول لـ Admin (يلزم حساب مدير)";
+              errBox.style.display = 'block';
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.log("Login error", err);
+      }
+
+      if (errBox) {
+        errBox.innerText = "❌ بيانات الدخول غير صحيحة (تأكد من البريد وكلمة المرور)";
+        errBox.style.display = 'block';
+      }
+    }
+
+    function adminLogout() {
+      localStorage.removeItem('sheland_jwt_token');
+      localStorage.removeItem('sheland_user_data');
+      location.reload();
+    }
+
+    async function initAdminUI() {
+      const isAuthed = await checkAdminAuth();
+      if (!isAuthed) return;
+
       renderAdminProducts(adminProducts);
       renderAdminOrders(adminOrders);
       if (document.getElementById('statProductsCount')) document.getElementById('statProductsCount').innerText = adminProducts.length;
@@ -702,8 +820,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", initAdminUI);
-    window.addEventListener("load", initAdminUI);
-    initAdminUI();
 
 
     async function loadAdminProducts() {
