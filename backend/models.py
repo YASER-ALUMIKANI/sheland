@@ -177,3 +177,18 @@ class Coupon(Base):
     min_order_amount = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
 
+
+class PaymentMethod(Base):
+    __tablename__ = "payment_methods"
+
+    id = Column(String, primary_key=True, index=True)
+    name_ar = Column(String, nullable=False)
+    name_en = Column(String, nullable=True)
+    icon = Column(String, default="💳")
+    type = Column(String, default="wallet")
+    account_name = Column(String, nullable=True)
+    account_number = Column(String, nullable=True)
+    instructions = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+

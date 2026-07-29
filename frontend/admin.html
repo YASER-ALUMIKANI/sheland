@@ -307,6 +307,7 @@
       <button class="admin-tab-btn active" onclick="switchAdminTab('productsTab', this)">📦 إدارة المنتجات والكتالوج</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('categoriesTab', this)">📂 إدارة التصنيفات</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('ordersTab', this)">📋 متابعة الطلبات</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('paymentsTab', this)">💳 إدارة طرق الدفع والمحافظ</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('kpisTab', this)">📊 مركز مؤشرات الأداء (KPIs Center)</button>
     </div>
 
@@ -397,9 +398,36 @@
           </table>
         </div>
       </div>
+    <!-- TAB 4: Payment Methods & Wallets Management -->
+    <div id="paymentsTab" class="admin-tab-content" style="display: none;">
+      <div class="admin-table-card">
+        <div class="table-tools" style="justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-weight: 800; font-size: 16px; margin: 0;">💳 إعدادات المحافظ الإلكترونية وطرق الدفع في المنصة</h3>
+          <button onclick="openAddPaymentModal()" style="background: var(--success); color: white; padding: 9px 16px; border-radius: 8px; font-weight: 800; font-size: 13px;">➕ إضافة طريقة دفع / محفظة جديدة</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>الرمز والطريقة</th>
+                <th>اسم المحفظة / الحساب</th>
+                <th>صاحب الحساب</th>
+                <th>رقم الحساب / المحفظة</th>
+                <th>التعليمات للمشتري</th>
+                <th>الحالة</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="adminPaymentsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <!-- TAB 4: E-commerce KPIs Center -->
+    <!-- TAB 5: E-commerce KPIs Center -->
     <div id="kpisTab" class="admin-tab-content" style="display: none;">
       <!-- Golden Triangle Highlight Card -->
       <div style="background: linear-gradient(135deg, #4A154B 0%, #2D0F31 100%); color: white; border-radius: 14px; padding: 24px; margin-bottom: 24px; box-shadow: 0 6px 20px rgba(74, 21, 75, 0.25);">
@@ -550,6 +578,52 @@
   </footer>
 
   <!-- Add / Edit Product Modal -->
+  <div id="paymentModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: white; border-radius: 12px; max-width: 500px; width: 100%; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <h3 id="paymentModalTitle" style="margin-top: 0; font-weight: 800; color: var(--primary-dark);">💳 إضافة طريقة دفع / محفظة جديدة</h3>
+      <form onsubmit="savePaymentMethod(event)">
+        <input type="hidden" id="pmEditMode" value="create">
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 13px;">رمز المحفظة (ID فريد بالإنجليزية) *:</label>
+          <input type="text" id="pmKey" required placeholder="مثال: kuraimi, onecash, floosak, jawali, bank" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 13px;">اسم المحفظة / طريقة الدفع بالعربية *:</label>
+          <input type="text" id="pmNameAr" required placeholder="مثال: محفظة كاش أو حاسب الكريمي" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">الأيقونة (Emoji):</label>
+            <input type="text" id="pmIcon" placeholder="🏦" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="font-weight: 700; font-size: 13px;">نوع الدفع:</label>
+            <select id="pmType" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;">
+              <option value="wallet">محفظة إلكترونية</option>
+              <option value="bank">حساب بنكي</option>
+              <option value="offline">دفع نقدي (COD)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 13px;">اسم صاحب الحساب / المستفيد:</label>
+          <input type="text" id="pmAccountName" placeholder="مثال: شركة شي لاند للتجارة" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 13px;">رقم الحساب / المحفظة *:</label>
+          <input type="text" id="pmAccountNumber" required placeholder="مثال: 3048572019" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px; font-weight: 800;">
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: 700; font-size: 13px;">تعليمات التحويل للعميل:</label>
+          <textarea id="pmInstructions" rows="3" placeholder="أدخل خطوات التحويل ورقم الحساب الواضح للعميل" style="width: 100%; padding: 9px; border: 1px solid #CCC; border-radius: 6px;"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closePaymentModal()" style="padding: 10px 18px; border-radius: 6px; border: 1px solid #CCC; background: #FFF;">إلغاء</button>
+          <button type="submit" style="padding: 10px 20px; border-radius: 6px; border: none; background: var(--primary); color: white; font-weight: 800;">حفظ طريقة الدفع 💾</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="adminProdModal">
     <div class="modal-card" style="max-width: 650px;">
@@ -878,6 +952,7 @@
 
       loadAdminProducts();
       loadAdminOrders();
+      loadAdminPayments();
       loadAdminKPIs();
     }
 
@@ -1016,11 +1091,22 @@
 
       tbody.innerHTML = orders.map(o => {
         const st = o.status || 'قيد المعالجة';
+        const isPaid = o.payment_status === 'paid';
+        const payStatusBadge = isPaid
+          ? '<span style="background:#C6F6D5; color:#22543D; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:2px;">✔️ مدفوع</span>'
+          : '<span style="background:#FEFCBF; color:#744210; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:2px;">⏳ قيد التحقق</span>';
+        const txBadge = o.payment_tx_id ? `<div style="font-size:11px; font-weight:800; color:#2B6CB0; margin-top:3px; font-family:monospace;">🔑 حوالة: ${o.payment_tx_id}</div>` : '';
+        const verifyBtn = (!isPaid && o.payment_method !== 'COD') ? `<button class="action-btn-sm" onclick="verifyOrderPayment(${o.id})" style="background: #059669; color: white; padding: 5px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; margin-left: 4px;">✅ تأكيد الدفع</button>` : '';
+
         return `
           <tr>
             <td style="font-weight:800; color:var(--primary-dark);">${o.order_number}</td>
             <td>${o.shipping_address || 'مدينة البيضاء'}</td>
-            <td><span style="background:#E0F2F1; color:#00695C; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px;">${o.payment_method}</span></td>
+            <td>
+              <span style="background:#E0F2F1; color:#00695C; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px;">${o.payment_method}</span>
+              <br>${payStatusBadge}
+              ${txBadge}
+            </td>
             <td style="font-weight:900; color:var(--success);">${o.total_amount} ر.ي</td>
             <td>
               <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding: 6px 10px; border-radius: 6px; font-weight: 800; font-size: 12px; border: 1px solid var(--primary); background: #FFF9FE; color: var(--primary-dark); cursor: pointer;">
@@ -1035,7 +1121,8 @@
             <td>
               <button class="action-btn-sm" onclick="printSalesInvoice(${o.id})" style="background: #10B981; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px; margin-left: 4px;">🧾 الفاتورة</button>
               <button class="action-btn-sm" onclick="openParcelModal(${o.id})" style="background: #3B82F6; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px; margin-left: 4px;">📦 الطرد</button>
-              <button class="action-btn-sm" onclick="printShippingLabel(${o.id})" style="background: #8B2C7C; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px;">🏷️ ملصق الشحن</button>
+              <button class="action-btn-sm" onclick="printShippingLabel(${o.id})" style="background: #8B2C7C; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 12px;">🏷️ الملصق</button>
+              ${verifyBtn}
             </td>
           </tr>
         `;
@@ -1659,6 +1746,187 @@
       alert("✅ تم حفظ وتحديث بيانات الطرد بنجاح! سيتم انعكاس البيانات على ملصق الشحن ورمز الـ QR فورا.");
       closeParcelModal();
       renderAdminOrders(adminOrders);
+    }
+
+    /* --- PAYMENT METHODS ADMIN MANAGEMENT --- */
+    let adminPaymentMethods = [];
+
+    async function loadAdminPayments() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/payments`, {
+          headers: getAuthHeaders()
+        });
+        if (res.ok) {
+          adminPaymentMethods = await res.json();
+        } else {
+          adminPaymentMethods = [];
+        }
+      } catch (err) {
+        console.error("Load payments error:", err);
+      }
+      renderAdminPayments(adminPaymentMethods);
+    }
+
+    function renderAdminPayments(methods) {
+      const tbody = document.getElementById('adminPaymentsTableBody');
+      if (!tbody) return;
+
+      if (!methods || methods.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 20px; color:#888;">لا توجد طرق دفع معرفة حتى الآن.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = methods.map(pm => {
+        const statusBadge = pm.is_active
+          ? '<span style="background:#C6F6D5; color:#22543D; font-weight:700; font-size:11px; padding:3px 8px; border-radius:4px;">✔️ مفعّلة</span>'
+          : '<span style="background:#FED7D7; color:#9B2C2C; font-weight:700; font-size:11px; padding:3px 8px; border-radius:4px;">❌ معطلة</span>';
+
+        return `
+          <tr>
+            <td>
+              <span style="font-size:18px; margin-left:6px;">${pm.icon || '💳'}</span>
+              <strong style="color:var(--primary-dark); font-family:monospace;">${pm.id}</strong>
+            </td>
+            <td style="font-weight:800; color:#1A202C;">${pm.name_ar}</td>
+            <td style="font-size:13px;">${pm.account_name || '—'}</td>
+            <td><strong style="font-size:14px; color:var(--primary); font-family:monospace;">${pm.account_number || '—'}</strong></td>
+            <td style="font-size:12px; color:#4A5568; max-width:250px;">${pm.instructions || '—'}</td>
+            <td>${statusBadge}</td>
+            <td>
+              <button onclick='editPaymentMethod(${JSON.stringify(pm).replace(/'/g, "&apos;")})' style="background:#3B82F6; color:white; border:none; padding:5px 10px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; margin-left:4px;">✏️ تعديل</button>
+              <button onclick="togglePaymentStatus('${pm.id}', ${pm.is_active})" style="background:${pm.is_active ? '#E53E3E' : '#38A169'}; color:white; border:none; padding:5px 10px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; margin-left:4px;">${pm.is_active ? 'تعطيل' : 'تفعيل'}</button>
+              <button onclick="deletePaymentMethod('${pm.id}')" style="background:#718096; color:white; border:none; padding:5px 8px; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer;">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openAddPaymentModal() {
+      document.getElementById('paymentModalTitle').innerText = '💳 إضافة طريقة دفع / محفظة جديدة';
+      document.getElementById('pmEditMode').value = 'create';
+      document.getElementById('pmKey').value = '';
+      document.getElementById('pmKey').readOnly = false;
+      document.getElementById('pmNameAr').value = '';
+      document.getElementById('pmIcon').value = '📱';
+      document.getElementById('pmType').value = 'wallet';
+      document.getElementById('pmAccountName').value = '';
+      document.getElementById('pmAccountNumber').value = '';
+      document.getElementById('pmInstructions').value = '';
+      document.getElementById('paymentModal').style.display = 'flex';
+    }
+
+    function editPaymentMethod(pm) {
+      document.getElementById('paymentModalTitle').innerText = `✏️ تعديل محفظة: ${pm.name_ar}`;
+      document.getElementById('pmEditMode').value = 'update';
+      document.getElementById('pmKey').value = pm.id;
+      document.getElementById('pmKey').readOnly = true;
+      document.getElementById('pmNameAr').value = pm.name_ar || '';
+      document.getElementById('pmIcon').value = pm.icon || '💳';
+      document.getElementById('pmType').value = pm.type || 'wallet';
+      document.getElementById('pmAccountName').value = pm.account_name || '';
+      document.getElementById('pmAccountNumber').value = pm.account_number || '';
+      document.getElementById('pmInstructions').value = pm.instructions || '';
+      document.getElementById('paymentModal').style.display = 'flex';
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').style.display = 'none';
+    }
+
+    async function savePaymentMethod(event) {
+      event.preventDefault();
+      const mode = document.getElementById('pmEditMode').value;
+      const key = document.getElementById('pmKey').value.trim().toLowerCase();
+      const payload = {
+        id: key,
+        name_ar: document.getElementById('pmNameAr').value.trim(),
+        icon: document.getElementById('pmIcon').value.trim() || '💳',
+        type: document.getElementById('pmType').value,
+        account_name: document.getElementById('pmAccountName').value.trim(),
+        account_number: document.getElementById('pmAccountNumber').value.trim(),
+        instructions: document.getElementById('pmInstructions').value.trim(),
+        is_active: true
+      };
+
+      try {
+        const url = (mode === 'create') ? `${API_BASE}/admin/payments` : `${API_BASE}/admin/payments/${key}`;
+        const method = (mode === 'create') ? 'POST' : 'PUT';
+
+        const res = await fetch(url, {
+          method: method,
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          alert('🎉 تم حفظ طريقة الدفع والمحفظة بنجاح!');
+          closePaymentModal();
+          loadAdminPayments();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(`❌ ${err.detail || 'حدث خطأ أثناء حفظ طريقة الدفع'}`);
+        }
+      } catch (err) {
+        alert('❌ تعذر الاتصال بالسيرفر');
+      }
+    }
+
+    async function togglePaymentStatus(pmId, currentActive) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/payments/${pmId}`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pmId, name_ar: "update", is_active: !currentActive })
+        });
+        if (res.ok) {
+          loadAdminPayments();
+        } else {
+          alert('❌ تعذر تحديث حالة المحفظة');
+        }
+      } catch (err) {
+        alert('❌ خطأ في الاتصال');
+      }
+    }
+
+    async function deletePaymentMethod(pmId) {
+      if (!confirm(`هل أنت تأكد من حذف طريقة الدفع / المحفظة (${pmId})؟`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/payments/${pmId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        if (res.ok) {
+          alert('🗑️ تم حذف المحفظة بنجاح');
+          loadAdminPayments();
+        } else {
+          alert('❌ تعذر حذف المحفظة');
+        }
+      } catch (err) {
+        alert('❌ خطأ في الاتصال');
+      }
+    }
+
+    async function verifyOrderPayment(orderId) {
+      const txId = prompt("أدخل رقم العملية / الحوالة لتأكيد الاستلام (أو اتركه كما هو للإنهاء):");
+      if (txId === null) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/orders/${orderId}/verify-payment`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ payment_status: 'paid', payment_tx_id: txId || undefined })
+        });
+
+        if (res.ok) {
+          alert('🎉 تم اعتماد وتأكيد استلام حوالة الطلب بنجاح!');
+          loadAdminOrders();
+        } else {
+          alert('❌ تعذر تأكيد الدفع للطلب');
+        }
+      } catch (err) {
+        alert('❌ خطأ في الاتصال');
+      }
     }
   </script>
 

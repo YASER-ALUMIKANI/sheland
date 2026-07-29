@@ -189,3 +189,19 @@ class CouponResponse(CouponCreate):
     class Config:
         from_attributes = True
 
+
+class PaymentMethodBase(BaseModel):
+    id: str
+    name_ar: str
+    name_en: Optional[str] = None
+    icon: Optional[str] = "💳"
+    type: Optional[str] = "wallet"
+    account_name: Optional[str] = None
+    account_number: Optional[str] = None
+    instructions: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class PaymentMethodResponse(PaymentMethodBase):
+    class Config:
+        from_attributes = True
+
