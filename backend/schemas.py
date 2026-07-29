@@ -6,6 +6,37 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+# ==========================================================================
+# Auth Schemas
+# ==========================================================================
+class UserCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., min_length=5, max_length=150)
+    password: str = Field(..., min_length=6, max_length=100)
+    phone: Optional[str] = None
+    role: Optional[str] = "customer"  # customer, seller, admin
+
+class UserLogin(BaseModel):
+    email_or_phone: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    phone: Optional[str] = None
+    role: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
 class CategoryBase(BaseModel):
     name_ar: str
     name_en: str

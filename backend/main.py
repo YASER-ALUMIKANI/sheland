@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from .database import Base, engine, get_db
-from . import models, schemas, analytics
+from . import models, schemas, analytics, auth
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
@@ -142,6 +142,61 @@ def get_iconmask512():
 
 
 
+
+
+# ==========================================================================
+# Authentication Endpoints
+# ==========================================================================
+@app.post("/api/auth/register", response_model=schemas.Token, status_code=201)
+def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Register a new customer or vendor with bcrypt hashed password."""
+    existing_user = db.query(models.User).filter(models.User.email == user_in.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="البريد الإلكتروني مستخدم بالفعل"
+        )
+    
+    hashed_pwd = auth.hash_password(user_in.password)
+    new_user = models.User(
+        name=user_in.name,
+        email=user_in.email,
+        phone=user_in.phone,
+        password_hash=hashed_pwd,
+        role=user_in.role or "customer"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    if new_user.role == "seller":
+        seller = models.Seller(user_id=new_user.id, store_name=f"متجر {new_user.name}")
+        db.add(seller)
+        db.commit()
+
+    token = auth.create_access_token({"sub": str(new_user.id), "role": new_user.role})
+    return {"access_token": token, "token_type": "bearer", "user": new_user}
+
+@app.post("/api/auth/login", response_model=schemas.Token)
+def login_user(login_in: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Authenticate user with email/phone & password, returning JWT token."""
+    user = db.query(models.User).filter(
+        (models.User.email == login_in.email_or_phone) | (models.User.phone == login_in.email_or_phone)
+    ).first()
+    
+    if not user or not auth.verify_password(login_in.password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="بيانات الدخول غير صحيحة (البريد الإلكتروني/رقم الجوال أو كلمة المرور خطأ)"
+        )
+    
+    token = auth.create_access_token({"sub": str(user.id), "role": user.role})
+    return {"access_token": token, "token_type": "bearer", "user": user}
+
+@app.get("/api/auth/me", response_model=schemas.UserResponse)
+def get_me(current_user: models.User = Depends(auth.require_current_user)):
+    """Return currently authenticated user profile."""
+    return current_user
 
 
 # --- Category Endpoints ---
@@ -513,20 +568,28 @@ def seed_database(db: Session = Depends(get_db)):
     if db.query(models.Category).first():
         return {"message": "Database already seeded"}
 
-    # Seed User & Seller
-    user = models.User(
+    # Seed Admin & Seller Users with bcrypt passwords
+    admin_user = models.User(
+        name="مدير منصة شي لاند",
+        email="admin@sheland.com",
+        phone="0770000000",
+        password_hash=auth.hash_password("admin123"),
+        role="admin"
+    )
+    db.add(admin_user)
+
+    seller_user = models.User(
         name="متجر شي لاند الرسمي",
         email="seller@sheland.com",
-        password_hash="hashed_secret",
+        phone="0771111111",
+        password_hash=auth.hash_password("seller123"),
         role="seller"
     )
-    db.add(user)
+    db.add(seller_user)
     db.commit()
-    db.refresh(user)
+    db.refresh(seller_user)
 
-    seller = models.Seller(user_id=user.id, store_name="Sheland Official Store", rating=4.8)
-
-
+    seller = models.Seller(user_id=seller_user.id, store_name="Sheland Official Store", rating=4.8)
     db.add(seller)
     db.commit()
     db.refresh(seller)

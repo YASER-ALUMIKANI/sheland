@@ -4,6 +4,39 @@
 
 const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
+// JWT Authentication Helpers
+function getAuthToken() {
+  return localStorage.getItem('sheland_jwt_token') || '';
+}
+
+function setAuthToken(token, user) {
+  if (token) {
+    localStorage.setItem('sheland_jwt_token', token);
+  }
+  if (user) {
+    localStorage.setItem('sheland_user_data', JSON.stringify(user));
+    if (user.name) localStorage.setItem('sheland_user_name', user.name);
+    if (user.phone) localStorage.setItem('sheland_user_phone', user.phone);
+  }
+}
+
+function clearAuthToken() {
+  localStorage.removeItem('sheland_jwt_token');
+  localStorage.removeItem('sheland_user_data');
+  showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
+  setTimeout(() => location.reload(), 800);
+}
+
+async function authFetch(url, options = {}) {
+  const token = getAuthToken();
+  const headers = options.headers || {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  options.headers = headers;
+  return fetch(url, options);
+}
+
 // Local Seed Products Backup (Prices in Yemeni Rial YER)
 const LOCAL_PRODUCTS_SEED = [
   { id: 7, category_id: 2, title_ar: "بنطال جينز عصري بقصة مريحة", price: 14000.00, compare_at_price: 22000.00, image_url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80", rating: 4.5, review_count: 410, free_shipping: true, cod_available: true, is_featured: false, stock: 15 },
