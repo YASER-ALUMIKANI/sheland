@@ -1159,8 +1159,12 @@ def create_coupon(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
 ):
+    code_upper = coupon_in.code.strip().upper()
+    existing = db.query(models.Coupon).filter(models.Coupon.code == code_upper).first()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"رمز الكوبون '{code_upper}' موجود مسبقاً.")
     coupon = models.Coupon(
-        code=coupon_in.code.upper(),
+        code=code_upper,
         discount_type=coupon_in.discount_type,
         discount_value=coupon_in.discount_value,
         min_order_amount=coupon_in.min_order_amount,
@@ -1170,6 +1174,18 @@ def create_coupon(
     db.commit()
     db.refresh(coupon)
     return coupon
+
+@app.delete("/api/coupons/{coupon_id}", status_code=204)
+def delete_coupon(
+    coupon_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin"]))
+):
+    coupon = db.query(models.Coupon).filter(models.Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="الكوبون غير موجود.")
+    db.delete(coupon)
+    db.commit()
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)

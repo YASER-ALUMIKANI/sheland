@@ -308,6 +308,7 @@
       <button class="admin-tab-btn" onclick="switchAdminTab('categoriesTab', this)">📂 إدارة التصنيفات</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('ordersTab', this)">📋 متابعة الطلبات</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('paymentsTab', this)">💳 إدارة طرق الدفع والمحافظ</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('couponsTab', this)">🎟️ إدارة الكوبونات والخصومات</button>
       <button class="admin-tab-btn" onclick="switchAdminTab('kpisTab', this)">📊 مركز مؤشرات الأداء (KPIs Center)</button>
     </div>
 
@@ -423,6 +424,66 @@
             </thead>
             <tbody id="adminPaymentsTableBody">
               <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Coupons & Discounts Management -->
+    <div id="couponsTab" class="admin-tab-content" style="display: none;">
+      <div class="admin-table-card">
+        <div class="table-tools" style="justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+          <h3 style="font-weight: 800; font-size: 16px; margin: 0;">🎟️ إدارة الكوبونات وقسائم الخصم</h3>
+
+          <!-- Create Coupon Form -->
+          <div style="background: #FAF5F9; border: 1px solid #E8D4E5; border-radius: 12px; padding: 16px; width: 100%; max-width: 700px;">
+            <h4 style="font-weight: 800; font-size: 14px; margin-bottom: 14px; color: var(--primary);">➕ إنشاء كوبون خصم جديد</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">رمز الكوبون *</label>
+                <input type="text" id="newCouponCode" placeholder="SHELAND10" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; text-transform:uppercase; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">نوع الخصم</label>
+                <select id="newCouponType" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
+                  <option value="percent">نسبة مئوية (%)</option>
+                  <option value="fixed">مبلغ ثابت (ر.ي)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">قيمة الخصم *</label>
+                <input type="number" id="newCouponValue" placeholder="10" min="1" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">الحد الأدنى للطلب (ر.ي)</label>
+                <input type="number" id="newCouponMin" placeholder="0" min="0" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
+              </div>
+              <div style="display:flex; align-items:flex-end;">
+                <button onclick="createAdminCoupon()" style="background: var(--success); color: white; padding: 9px 20px; border-radius: 8px; font-weight: 800; font-size: 13px; width:100%;">✔ إنشاء الكوبون</button>
+              </div>
+            </div>
+            <p style="font-size: 11px; color: #888; margin: 0;">مثال: رمز <b>SHELAND10</b> بنسبة 10% — يُطبَّق عند الوصول للحد الأدنى المحدد.</p>
+          </div>
+        </div>
+
+        <!-- Coupons Table -->
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>رمز الكوبون</th>
+                <th>نوع الخصم</th>
+                <th>قيمة الخصم</th>
+                <th>الحد الأدنى</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="adminCouponsTableBody">
+              <tr><td colspan="6" style="text-align:center; color:#888;">جاري التحميل...</td></tr>
             </tbody>
           </table>
         </div>
@@ -752,6 +813,8 @@
         loadAdminCategories();
       } else if (tabId === 'paymentsTab') {
         loadAdminPayments();
+      } else if (tabId === 'couponsTab') {
+        loadAdminCoupons();
       } else if (tabId === 'kpisTab') {
         loadAdminKPIs();
       }
@@ -763,6 +826,95 @@
         ...extraHeaders,
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
+    }
+
+    // ================================================================
+    // Coupons Management Functions
+    // ================================================================
+    async function loadAdminCoupons() {
+      const tbody = document.getElementById('adminCouponsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">جاري التحميل...</td></tr>';
+      try {
+        const res = await fetch(`${API_BASE}/coupons`, { headers: getAuthHeaders() });
+        if (!res.ok) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D83A3A;">فشل تحميل الكوبونات</td></tr>'; return; }
+        const coupons = await res.json();
+        if (coupons.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">لا توجد كوبونات مضافة بعد. أنشئ أول كوبون خصم أعلاه.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = coupons.map(c => `
+          <tr>
+            <td><b style="font-size:14px; letter-spacing:1px; color:var(--primary-dark);">${escapeAdminHTML(c.code)}</b></td>
+            <td>${c.discount_type === 'percent' ? '📊 نسبة مئوية' : '💰 مبلغ ثابت'}</td>
+            <td><b>${c.discount_type === 'percent' ? c.discount_value + '%' : c.discount_value + ' ر.ي'}</b></td>
+            <td>${c.min_order_amount > 0 ? c.min_order_amount + ' ر.ي' : 'بدون حد أدنى'}</td>
+            <td>
+              <span style="background:${c.is_active ? 'var(--success)' : '#999'};color:white;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800;">
+                ${c.is_active ? '✅ نشط' : '⏸️ موقوف'}
+              </span>
+            </td>
+            <td>
+              <button onclick="deleteAdminCoupon(${c.id})" style="background:#D83A3A;color:white;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">🗑️ حذف</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D83A3A;">خطأ في الاتصال بالسيرفر</td></tr>';
+      }
+    }
+
+    async function createAdminCoupon() {
+      const code = (document.getElementById('newCouponCode')?.value || '').trim().toUpperCase();
+      const type = document.getElementById('newCouponType')?.value || 'percent';
+      const value = parseFloat(document.getElementById('newCouponValue')?.value || 0);
+      const minAmt = parseFloat(document.getElementById('newCouponMin')?.value || 0);
+
+      if (!code || !value || value <= 0) {
+        showAdminToast('يرجى إدخال رمز الكوبون وقيمة الخصم.', 'error'); return;
+      }
+      if (type === 'percent' && value > 100) {
+        showAdminToast('النسبة المئوية يجب أن تكون بين 1 و 100.', 'error'); return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/coupons`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, discount_type: type, discount_value: value, min_order_amount: minAmt })
+        });
+        if (res.ok) {
+          showAdminToast(`✅ تم إنشاء الكوبون (${code}) بنجاح!`, 'success');
+          document.getElementById('newCouponCode').value = '';
+          document.getElementById('newCouponValue').value = '';
+          document.getElementById('newCouponMin').value = '';
+          loadAdminCoupons();
+        } else {
+          const err = await res.json();
+          showAdminToast(err.detail || 'فشل إنشاء الكوبون — ربما الرمز موجود مسبقاً.', 'error');
+        }
+      } catch {
+        showAdminToast('خطأ في الاتصال بالسيرفر.', 'error');
+      }
+    }
+
+    async function deleteAdminCoupon(couponId) {
+      if (!confirm('هل تريد حذف هذا الكوبون نهائياً؟')) return;
+      try {
+        const res = await fetch(`${API_BASE}/coupons/${couponId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        if (res.status === 204) {
+          showAdminToast('تم حذف الكوبون بنجاح.', 'success');
+          loadAdminCoupons();
+        } else {
+          const err = await res.json();
+          showAdminToast(err.detail || 'فشل الحذف.', 'error');
+        }
+      } catch {
+        showAdminToast('خطأ في الاتصال بالسيرفر.', 'error');
+      }
     }
 
     async function loadAdminKPIs() {

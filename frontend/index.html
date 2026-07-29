@@ -468,20 +468,29 @@
     </div>
     <div class="cart-footer">
       <!-- Promo Code Box -->
-      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-        <input type="text" id="couponCodeInput" placeholder="كود الخصم (مثال: CITY10)" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; text-transform: uppercase;">
-        <button onclick="applyCouponCode()" style="background: var(--primary-dark); color: white; padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px;">تطبيق الكوبون</button>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <input type="text" id="couponCodeInput" placeholder="🎟️ كود الخصم (مثال: SHELAND10)" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; text-transform: uppercase;">
+        <button onclick="applyCouponCode()" style="background: var(--primary-dark); color: white; padding: 8px 14px; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px;">تطبيق</button>
       </div>
-      <div id="couponAppliedMsg" style="font-size: 12px; font-weight: 700; color: var(--success); margin-bottom: 8px; display: none;"></div>
+      <div id="couponAppliedMsg" style="font-size: 12px; font-weight: 700; color: var(--success); margin-bottom: 6px; display: none; display:flex; align-items:center; justify-content:space-between;">
+        <span id="couponAppliedText"></span>
+        <button onclick="removeCoupon()" style="font-size:11px; color:#D83A3A; font-weight:800; background:none; border:none; cursor:pointer;">إلغاء ✕</button>
+      </div>
+
+      <!-- Subtotal + Discount breakdown -->
+      <div id="cartDiscountLine" style="display: none; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--success); margin-bottom: 4px;">
+        <span>🎟️ خصم الكوبون:</span>
+        <span id="cartDiscountVal">- 0 ر.ي</span>
+      </div>
 
       <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; margin-bottom: 16px;">
         <span>الإجمالي النهائي:</span>
         <span id="cartTotalVal" style="color: var(--primary-dark);">0.00 ر.ي</span>
-
       </div>
       <button onclick="openCheckoutModal()" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 16px;">متابعة الشراء والتأكيد ➔</button>
     </div>
   </div>
+
 
   <!-- Order Tracking Modal -->
   <div class="modal-overlay" id="trackModal">

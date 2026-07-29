@@ -682,45 +682,46 @@ let activeDiscountAmount = 0.0;
 let activeCouponCode = null;
 
 async function applyCouponCode() {
-  const code = document.getElementById('couponCodeInput').value.trim();
+  const code = (document.getElementById('couponCodeInput')?.value || '').trim().toUpperCase();
   if (!code) {
-    showToast("يرجى إدخال رمز الكوبون أولاً (مثال: CITY10).", 'danger', '⚠️');
+    showToast('يرجى إدخال كود الخصم أولاً.', 'danger', '⚠️');
     return;
   }
 
   const totalRaw = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
   try {
-    const res = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code)}&total=${totalRaw}`, {
-      method: "POST"
-    });
+    const res = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code)}&total=${totalRaw}`);
     if (res.ok) {
       const data = await res.json();
       activeDiscountAmount = data.discount_amount;
       activeCouponCode = data.code;
-
       const msgBox = document.getElementById('couponAppliedMsg');
-      msgBox.innerText = `✔️ تم تطبيق الكوبون (${data.code}): خصم ${data.discount_amount} ر.ي`;
-      msgBox.style.display = 'block';
-
-      showToast(`🎉 تم تطبيق الكوبون (${data.code}): خصم ${data.discount_amount} ر.ي`, 'success', '🎟️');
+      const msgText = document.getElementById('couponAppliedText');
+      if (msgBox && msgText) {
+        msgText.innerText = `✔️ كوبون (${data.code}): خصم ${formatPrice(data.discount_amount)}`;
+        msgBox.style.display = 'flex';
+      }
+      showToast(`🎉 تم تطبيق الكوبون! خصم ${formatPrice(data.discount_amount)}`, 'success', '🎟️');
       updateCartUI();
     } else {
       const errData = await res.json();
-      showToast(errData.detail || "رمز الكوبون غير صحيح.", 'danger', '⚠️');
+      showToast(errData.detail || 'رمز الكوبون غير صحيح أو منتهي الصلاحية.', 'danger', '⚠️');
     }
-  } catch (err) {
-    if (code.toUpperCase() === 'CITY10') {
-      activeDiscountAmount = roundVal(totalRaw * 0.10);
-      const msgBox = document.getElementById('couponAppliedMsg');
-      msgBox.innerText = `✔️ تم تطبيق الكوبون (CITY10): خصم ${activeDiscountAmount} ر.ي`;
-      msgBox.style.display = 'block';
-      showToast(`🎉 تم تطبيق الكوبون (CITY10): خصم ${activeDiscountAmount} ر.ي`, 'success', '🎟️');
-      updateCartUI();
-    } else {
-      showToast("الكوبونات المتاحة للتجربة: CITY10 أو SAVE20", 'info', 'ℹ️');
-    }
+  } catch {
+    showToast('تعذّر التحقق من الكوبون، تأكد من الاتصال بالسيرفر.', 'danger', '⚠️');
   }
+}
+
+function removeCoupon() {
+  activeDiscountAmount = 0.0;
+  activeCouponCode = null;
+  const inp = document.getElementById('couponCodeInput');
+  if (inp) inp.value = '';
+  const msg = document.getElementById('couponAppliedMsg');
+  if (msg) { msg.innerText = ''; msg.style.display = 'none'; }
+  updateCartUI();
+  showToast('تم إلغاء كود الخصم.', 'info', '❌');
 }
 
 
@@ -905,12 +906,20 @@ function saveCart() {
 
 function updateCartUI() {
   const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
-  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const subtotal   = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const discount   = activeDiscountAmount || 0;
+  const finalTotal = Math.max(0, subtotal - discount);
 
   document.getElementById('cartCountBadge').innerText = totalCount;
   if (document.getElementById('mobileCartBadge')) document.getElementById('mobileCartBadge').innerText = totalCount;
   document.getElementById('drawerCartCount').innerText = totalCount;
-  document.getElementById('cartTotalVal').innerText = formatPrice(totalPrice);
+  document.getElementById('cartTotalVal').innerText = formatPrice(finalTotal);
+
+  // Show/hide discount line
+  const discountLine = document.getElementById('cartDiscountLine');
+  if (discountLine) discountLine.style.display = discount > 0 ? 'flex' : 'none';
+  const discountVal = document.getElementById('cartDiscountVal');
+  if (discountVal) discountVal.innerText = `- ${formatPrice(discount)}`;
 
   const listContainer = document.getElementById('cartItemsList');
   if (!listContainer) return;
@@ -918,7 +927,7 @@ function updateCartUI() {
   if (cart.length === 0) {
     listContainer.innerHTML = `
       <div style="text-align: center; padding: 40px 0; color: var(--muted-text);">
-        <div style="font-size: 50px; margin-bottom: 10px;">🛒</div>
+        <div style="font-size: 50px; margin-bottom: 10px;">🛍</div>
         <p style="font-weight: 700;">سلة التسوق فارغة حالياً</p>
         <p style="font-size: 13px;">تصفح المنتجات وأضف ما يعجبك بأسعار ممتازة</p>
       </div>
@@ -945,6 +954,7 @@ function updateCartUI() {
   `).join('');
 
 }
+
 
 function toggleCartDrawer() {
   document.getElementById('cartDrawer').classList.toggle('active');
@@ -1101,6 +1111,13 @@ async function submitOrderProcess() {
     items: cart.map(i => ({ product_id: i.id, quantity: i.qty }))
   };
 
+  // ponytail: include coupon discount in order payload for backend tracking
+  if (activeCouponCode && activeDiscountAmount > 0) {
+    orderPayload.coupon_code = activeCouponCode;
+    orderPayload.discount_amount = activeDiscountAmount;
+    // adjust total shown — backend recomputes but we record coupon intent
+  }
+
   try {
     const res = await fetch(`${API_BASE}/orders`, {
       method: "POST",
@@ -1131,6 +1148,13 @@ async function submitOrderProcess() {
 
   cart = [];
   saveCart();
+  // Reset coupon after order placed
+  activeDiscountAmount = 0.0;
+  activeCouponCode = null;
+  const msg = document.getElementById('couponAppliedMsg');
+  if (msg) { msg.innerText = ''; msg.style.display = 'none'; }
+  const inp = document.getElementById('couponCodeInput');
+  if (inp) inp.value = '';
   updateCartUI();
 
   // ponytail: refresh product list from API after order to reflect updated stock
