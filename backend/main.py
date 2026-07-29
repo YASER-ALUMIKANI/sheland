@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from .database import Base, engine, get_db
 from . import models, schemas, analytics, auth
@@ -222,11 +223,14 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.post("/api/auth/login", response_model=schemas.Token)
 def login_user(login_in: schemas.UserLogin, db: Session = Depends(get_db)):
     """Authenticate user with email/phone & password, returning JWT token."""
+    clean_identifier = login_in.email_or_phone.strip().lower()
+    clean_phone = login_in.email_or_phone.strip()
+
     user = db.query(models.User).filter(
-        (models.User.email == login_in.email_or_phone) | (models.User.phone == login_in.email_or_phone)
+        (func.lower(models.User.email) == clean_identifier) | (models.User.phone == clean_phone)
     ).first()
     
-    if not user or not auth.verify_password(login_in.password, user.password_hash):
+    if not user or not auth.verify_password(login_in.password.strip(), user.password_hash):
         raise HTTPException(
             status_code=401,
             detail="بيانات الدخول غير صحيحة (البريد الإلكتروني/رقم الجوال أو كلمة المرور خطأ)"
@@ -653,9 +657,10 @@ async def upload_image_file(
 # --- Database Seeder ---
 @app.get("/api/seed")
 def seed_database(db: Session = Depends(get_db)):
+    ensure_default_users(db)
     # Check if categories exist
     if db.query(models.Category).first():
-        return {"message": "Database already seeded"}
+        return {"message": "Default admin and seller accounts verified. Categories already seeded."}
 
     # Seed Admin & Seller Users with bcrypt passwords
     admin_user = models.User(

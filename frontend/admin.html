@@ -615,7 +615,7 @@
   </div>
 
   <script>
-    const API_BASE = "/api";
+    const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
     const FALLBACK_ADMIN_PRODUCTS = [
       { id: 1, category_id: 1, title_ar: "فستان سهرة أنيق ومميز", title_en: "Elegant Evening Dress", price: 12500, rating: 4.8, free_shipping: true, cod_available: true, variants: [{ stock: 15 }] },
@@ -786,13 +786,20 @@
             }
             return;
           }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          if (errBox) {
+            errBox.innerText = `❌ ${errData.detail || "بيانات الدخول غير صحيحة"}`;
+            errBox.style.display = 'block';
+          }
+          return;
         }
       } catch (err) {
         console.log("Login error", err);
       }
 
       if (errBox) {
-        errBox.innerText = "❌ بيانات الدخول غير صحيحة (تأكد من البريد وكلمة المرور)";
+        errBox.innerText = "❌ تعذر الاتصال بـ API السيرفر، يرجى المحاولة لاحقاً";
         errBox.style.display = 'block';
       }
     }

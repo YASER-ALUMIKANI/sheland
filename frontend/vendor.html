@@ -336,10 +336,15 @@
             errBox.style.display = 'block';
             return;
           }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          errBox.innerText = `❌ ${errData.detail || "البريد الإلكتروني أو كلمة المرور غير صحيحة"}`;
+          errBox.style.display = 'block';
+          return;
         }
       } catch (err) {}
 
-      errBox.innerText = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
+      errBox.innerText = "❌ تعذر الاتصال بـ API السيرفر، يرجى المحاولة لاحقاً";
       errBox.style.display = 'block';
     }
 
