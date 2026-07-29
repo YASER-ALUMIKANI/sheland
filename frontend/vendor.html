@@ -208,6 +208,14 @@
   <script>
     const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
+    function getAuthHeaders(extraHeaders = {}) {
+      const token = localStorage.getItem('sheland_jwt_token') || '';
+      return {
+        ...extraHeaders,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+    }
+
     async function handleVendorSubmit(e) {
       e.preventDefault();
       const storeName = document.getElementById('vpStoreName').value.trim();
@@ -241,14 +249,6 @@
         free_shipping: true,
         cod_available: true
       };
-
-    function getAuthHeaders(extraHeaders = {}) {
-      const token = localStorage.getItem('sheland_jwt_token') || '';
-      return {
-        ...extraHeaders,
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      };
-    }
 
       try {
         const res = await fetch(`${API_BASE}/products`, {
