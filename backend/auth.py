@@ -69,10 +69,19 @@ def require_current_user(user: Optional[models.User] = Depends(get_current_user)
         )
     return user
 
+ROLE_HIERARCHY = {
+    "super_admin": ["super_admin", "admin", "sales_manager", "seller", "customer"],
+    "admin": ["admin", "sales_manager", "seller", "customer"],
+    "sales_manager": ["sales_manager", "seller", "customer"],
+    "seller": ["seller", "customer"],
+    "customer": ["customer"],
+}
+
 def require_roles(allowed_roles: List[str]):
-    """FastAPI dependency factory enforcing role-based authorization."""
+    """FastAPI dependency factory enforcing role-based authorization with hierarchy support."""
     def role_checker(user: models.User = Depends(require_current_user)) -> models.User:
-        if user.role not in allowed_roles:
+        user_effective_roles = ROLE_HIERARCHY.get(user.role, [user.role])
+        if not any(role in allowed_roles for role in user_effective_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="غير مصرح: ليس لديك الصلاحية الكافية للوصول لهذا المسار",

@@ -263,7 +263,11 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return schemas.ProductResponse.from_orm_with_stock(product)
 
 @app.post("/api/products", response_model=schemas.ProductResponse)
-def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db)):
+def create_product(
+    product_in: schemas.ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["seller"]))
+):
     db_product = models.Product(
         seller_id=product_in.seller_id,
         category_id=product_in.category_id,
@@ -311,7 +315,12 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
     return schemas.ProductResponse.from_orm_with_stock(db_product)
 
 @app.put("/api/products/{product_id}", response_model=schemas.ProductResponse)
-def update_product(product_id: int, product_in: schemas.ProductCreate, db: Session = Depends(get_db)):
+def update_product(
+    product_id: int,
+    product_in: schemas.ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["seller"]))
+):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -342,7 +351,11 @@ def update_product(product_id: int, product_in: schemas.ProductCreate, db: Sessi
 
 
 @app.delete("/api/products/{product_id}")
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin"]))
+):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -365,7 +378,12 @@ def get_orders(phone: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @app.put("/api/orders/{order_id}/status")
-def update_order_status(order_id: int, status: str = Query(...), db: Session = Depends(get_db)):
+def update_order_status(
+    order_id: int,
+    status: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
+):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -376,7 +394,12 @@ def update_order_status(order_id: int, status: str = Query(...), db: Session = D
     return {"status": "success", "order_id": order_id, "new_status": status}
 
 @app.put("/api/orders/{order_id}/parcel-details")
-def update_parcel_details(order_id: int, details: schemas.ParcelDetailsUpdate, db: Session = Depends(get_db)):
+def update_parcel_details(
+    order_id: int,
+    details: schemas.ParcelDetailsUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
+):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -397,8 +420,12 @@ def update_parcel_details(order_id: int, details: schemas.ParcelDetailsUpdate, d
         "weight": db_order.weight,
         "dimensions": db_order.dimensions
     }
+
 @app.get("/api/admin/analytics")
-def get_admin_analytics(db: Session = Depends(get_db)):
+def get_admin_analytics(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
+):
     # ponytail: Delegated to dedicated analytics module for auditability & verification
     return analytics.compute_ecommerce_analytics(db)
 
@@ -544,13 +571,33 @@ def validate_coupon(code: str = Query(...), total: float = Query(...), db: Sessi
         "discount_amount": discount
     }
 
+@app.post("/api/coupons", response_model=schemas.CouponResponse, status_code=201)
+def create_coupon(
+    coupon_in: schemas.CouponCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
+):
+    coupon = models.Coupon(
+        code=coupon_in.code.upper(),
+        discount_type=coupon_in.discount_type,
+        discount_value=coupon_in.discount_value,
+        min_order_amount=coupon_in.min_order_amount,
+        is_active=True
+    )
+    db.add(coupon)
+    db.commit()
+    db.refresh(coupon)
+    return coupon
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.post("/api/upload")
-async def upload_image_file(file: UploadFile = File(...)):
+async def upload_image_file(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.require_roles(["seller"]))
+):
     # ponytail: Save uploaded image file directly into frontend/uploads
     ext = os.path.splitext(file.filename)[1].lower() if file.filename else '.jpg'
     if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:

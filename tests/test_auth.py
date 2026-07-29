@@ -3,40 +3,7 @@ CityLand Backend - Unit Tests for JWT Authentication & Password Hashing
 # ponytail: Clean, compact pytest test suite for auth functionality
 """
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from backend.main import app
-from backend.database import Base, get_db
-from backend import auth, models
-
-from sqlalchemy.pool import StaticPool
-
-# Setup in-memory SQLite database with StaticPool for testing
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
+from backend import auth
 
 def test_hash_and_verify_password():
     password = "secret_password_123"
@@ -55,7 +22,7 @@ def test_create_and_decode_jwt_token():
     assert decoded.get("sub") == "42"
     assert decoded.get("role") == "admin"
 
-def test_register_user_endpoint():
+def test_register_user_endpoint(client):
     payload = {
         "name": "تاجر اختبار",
         "email": "test_seller@sheland.com",
@@ -70,7 +37,7 @@ def test_register_user_endpoint():
     assert res_data["user"]["email"] == "test_seller@sheland.com"
     assert res_data["user"]["role"] == "seller"
 
-def test_login_user_endpoint():
+def test_login_user_endpoint(client):
     # First register user
     reg_payload = {
         "name": "عميل اختبار",
@@ -92,7 +59,7 @@ def test_login_user_endpoint():
     assert "access_token" in token_data
     assert token_data["user"]["name"] == "عميل اختبار"
 
-def test_get_me_endpoint():
+def test_get_me_endpoint(client):
     # Register and get token
     reg_payload = {
         "name": "مدير النظام",
@@ -112,7 +79,7 @@ def test_get_me_endpoint():
     assert user_info["email"] == "admin_test@sheland.com"
     assert user_info["role"] == "admin"
 
-def test_invalid_credentials_login():
+def test_invalid_credentials_login(client):
     login_payload = {
         "email_or_phone": "nonexistent@sheland.com",
         "password": "wrong_password"

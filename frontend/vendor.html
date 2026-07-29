@@ -164,10 +164,18 @@
         cod_available: true
       };
 
+    function getAuthHeaders(extraHeaders = {}) {
+      const token = localStorage.getItem('sheland_jwt_token') || '';
+      return {
+        ...extraHeaders,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+    }
+
       try {
         const res = await fetch(`${API_BASE}/products`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(payload)
         });
         if (res.ok) {

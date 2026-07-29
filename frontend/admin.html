@@ -639,9 +639,17 @@
       }
     }
 
+    function getAuthHeaders(extraHeaders = {}) {
+      const token = localStorage.getItem('sheland_jwt_token') || '';
+      return {
+        ...extraHeaders,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+    }
+
     async function loadAdminKPIs() {
       try {
-        const res = await fetch(`${API_BASE}/admin/analytics`);
+        const res = await fetch(`${API_BASE}/admin/analytics`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           renderAdminKPIs(data);
@@ -1413,10 +1421,12 @@
       if (!confirm("هل أنت تأكد من رغبتك في حذف هذا المنتج من المنصة؟")) return;
 
       try {
-        const res = await fetch(`${API_BASE}/products/${id}`, { method: "DELETE" });
+        const res = await fetch(`${API_BASE}/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
         if (res.ok) {
           alert("تم حذف المنتج بنجاح!");
           loadAdminProducts();
+        } else {
+          alert("خطأ: غير مصرح لك بحذف هذا المنتج (يلزم حساب المدير العام)");
         }
       } catch (err) {
         console.log("Error deleting product:", err);
@@ -1461,7 +1471,7 @@
       try {
         await fetch(`${API_BASE}/orders/${orderId}/parcel-details`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ parcel_count, weight, dimensions })
         });
       } catch (err) {
