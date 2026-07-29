@@ -8,6 +8,7 @@ import os
 import shutil
 import io
 import csv
+from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +17,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -1221,6 +1222,139 @@ def delete_coupon(
         raise HTTPException(status_code=404, detail="الكوبون غير موجود.")
     db.delete(coupon)
     db.commit()
+
+# --- Excel & PDF Sales Reports Endpoints ---
+@app.get("/api/admin/reports/sales-excel")
+def export_sales_excel_report(
+    period: str = Query("all"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "sales_manager"]))
+):
+    """Generate and return styled Excel spreadsheet (.xlsx) for sales reports."""
+    query = db.query(models.Order).order_by(models.Order.id.desc())
+    now = datetime.utcnow()
+    if period == "weekly":
+        start_date = now - timedelta(days=7)
+        query = query.filter(models.Order.created_at >= start_date)
+    elif period == "monthly":
+        start_date = now - timedelta(days=30)
+        query = query.filter(models.Order.created_at >= start_date)
+
+    orders = query.all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "تقرير المبيعات الشامل"
+    ws.views.sheetView[0].showGridLines = True
+
+    # Title Banner
+    ws.merge_cells("A1:K1")
+    title_cell = ws["A1"]
+    period_title = "الأسبوعي" if period == "weekly" else ("الشهري" if period == "monthly" else "الشامل")
+    title_cell.value = f"منصة شي لاند — تقرير المبيعات والتخفيضات الرسمي ({period_title})"
+    title_cell.font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+    title_cell.fill = PatternFill(start_color="8B2C7C", end_color="8B2C7C", fill_type="solid")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 35
+
+    # Headers
+    headers = [
+        "رقم الطلب", "اسم العميل", "رقم الجوال", "عنوان التوصيل",
+        "طريقة الدفع", "كود الخصم", "قيمة الخصم (ر.ي)", "إجمالي الطلب الصافي (ر.ي)",
+        "حالة الدفع", "حالة الطلب", "تاريخ الطلب"
+    ]
+    ws.append([])
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="1E1B2E")
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for col_num, h in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+    ws.row_dimensions[3].height = 25
+
+    total_sales = 0.0
+    total_discounts = 0.0
+
+    for row_idx, o in enumerate(orders, start=4):
+        disc = o.discount_amount or 0.0
+        tot = o.total_amount or 0.0
+        total_sales += tot
+        total_discounts += disc
+        date_str = o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else ""
+
+        row_data = [
+            o.order_number,
+            o.customer_name or "عميل شي لاند",
+            o.phone or "",
+            o.shipping_address or "",
+            o.payment_method or "COD",
+            o.coupon_code or "-",
+            disc,
+            tot,
+            o.payment_status or "pending",
+            o.status or "قيد المعالجة",
+            date_str
+        ]
+        ws.append(row_data)
+
+        for col_num in range(1, 12):
+            cell = ws.cell(row=row_idx, column=col_num)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center", horizontal="center" if col_num not in [2,4] else "right")
+            if col_num in [7, 8]:
+                cell.number_format = '#,##0.00'
+        ws.row_dimensions[row_idx].height = 22
+
+    # Totals Row
+    last_row = len(orders) + 4
+    ws.merge_cells(f"A{last_row}:F{last_row}")
+    tot_label_cell = ws.cell(row=last_row, column=1)
+    tot_label_cell.value = "الإجمالي التراكمي:"
+    tot_label_cell.font = Font(name="Calibri", size=11, bold=True, color="8B2C7C")
+    tot_label_cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    disc_tot_cell = ws.cell(row=last_row, column=7)
+    disc_tot_cell.value = total_discounts
+    disc_tot_cell.font = Font(name="Calibri", size=11, bold=True, color="C53030")
+    disc_tot_cell.number_format = '#,##0.00'
+
+    sales_tot_cell = ws.cell(row=last_row, column=8)
+    sales_tot_cell.value = total_sales
+    sales_tot_cell.font = Font(name="Calibri", size=12, bold=True, color="10B981")
+    sales_tot_cell.number_format = '#,##0.00'
+
+    tot_fill = PatternFill(start_color="FAF5FF", end_color="FAF5FF", fill_type="solid")
+    for col_num in range(1, 12):
+        cell = ws.cell(row=last_row, column=col_num)
+        cell.fill = tot_fill
+        cell.border = thin_border
+
+    col_widths = {'A': 16, 'B': 22, 'C': 16, 'D': 30, 'E': 14, 'F': 14, 'G': 18, 'H': 22, 'I': 16, 'J': 16, 'K': 18}
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"Sheland_Sales_Report_{period}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
