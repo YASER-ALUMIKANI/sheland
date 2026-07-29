@@ -746,6 +746,10 @@
         loadAdminOrders();
       } else if (tabId === 'productsTab') {
         loadAdminProducts();
+      } else if (tabId === 'categoriesTab') {
+        loadAdminCategories();
+      } else if (tabId === 'paymentsTab') {
+        loadAdminPayments();
       } else if (tabId === 'kpisTab') {
         loadAdminKPIs();
       }
@@ -1522,32 +1526,6 @@
       renderAdminProducts(filtered);
     }
 
-    function switchAdminTab(tabId, btn) {
-      const tabs = document.querySelectorAll('.admin-tab-content');
-      tabs.forEach(tab => {
-        tab.style.setProperty('display', 'none', 'important');
-      });
-
-      const btns = document.querySelectorAll('.admin-tab-btn');
-      btns.forEach(b => {
-        b.classList.remove('active');
-      });
-
-      const targetTab = document.getElementById(tabId);
-      if (targetTab) {
-        targetTab.style.setProperty('display', 'block', 'important');
-      }
-      if (btn) btn.classList.add('active');
-
-      if (tabId === 'ordersTab') {
-        loadAdminOrders();
-      } else if (tabId === 'productsTab') {
-        loadAdminProducts();
-      } else if (tabId === 'kpisTab') {
-        loadAdminKPIs();
-      }
-    }
-
     async function handleProductImageUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1749,20 +1727,31 @@
     }
 
     /* --- PAYMENT METHODS ADMIN MANAGEMENT --- */
-    let adminPaymentMethods = [];
+    const DEFAULT_PAYMENT_METHODS_FALLBACK = [
+      { id: "cod", name_ar: "الدفع عند الاستلام (COD)", icon: "💵", type: "offline", account_name: "الدفع المباشر", account_number: "COD", instructions: "استلام الحساب نقداً عند التوصيل", is_active: true },
+      { id: "kuraimi", name_ar: "حاسب الكريمي (Kuraimi Pay)", icon: "🏦", type: "wallet", account_name: "شركة شي لاند", account_number: "3048572019", instructions: "التحويل عبر تطبيق أم حاسب أو حاسب الكريمي إلى حساب (3048572019)", is_active: true },
+      { id: "onecash", name_ar: "محفظة وان كاش (OneCash)", icon: "📱", type: "wallet", account_name: "شي لاند ستور", account_number: "775990011", instructions: "التحويل المباشر لوان كاش إلى الرقم (775990011)", is_active: true },
+      { id: "jawali", name_ar: "محفظة جوالي (Jawali Wallet)", icon: "📲", type: "wallet", account_name: "شي لاند", account_number: "771122334", instructions: "التسديد لخدمة جوالي لحساب (771122334)", is_active: true },
+      { id: "floosak", name_ar: "محفظة فلوسك (Floosak)", icon: "💳", type: "wallet", account_name: "متجر شي لاند", account_number: "730998877", instructions: "تحويل فوري لحساب (730998877)", is_active: true }
+    ];
 
     async function loadAdminPayments() {
       try {
-        const res = await fetch(`${API_BASE}/admin/payments`, {
+        let res = await fetch(`${API_BASE}/admin/payments`, {
           headers: getAuthHeaders()
         });
+        if (!res.ok) {
+          res = await fetch(`${API_BASE}/payments/methods`);
+        }
         if (res.ok) {
-          adminPaymentMethods = await res.json();
+          const data = await res.json();
+          adminPaymentMethods = (Array.isArray(data) && data.length > 0) ? data : DEFAULT_PAYMENT_METHODS_FALLBACK;
         } else {
-          adminPaymentMethods = [];
+          adminPaymentMethods = DEFAULT_PAYMENT_METHODS_FALLBACK;
         }
       } catch (err) {
         console.error("Load payments error:", err);
+        adminPaymentMethods = DEFAULT_PAYMENT_METHODS_FALLBACK;
       }
       renderAdminPayments(adminPaymentMethods);
     }
