@@ -17,6 +17,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from .database import Base, engine, get_db
 from . import models, schemas, analytics, auth
@@ -30,25 +33,33 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Security Middleware: Security Headers
+# Rate Limiting Engine with slowapi
+limiter = Limiter(key_func=get_remote_address, default_limits=["300/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Security Middleware: Strict Security Headers
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
 
 
-# Enable CORS for frontend integration
+# Strict CORS headers configuration
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000,https://sheland.com,https://sheland.onrender.com").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS if os.getenv("ENVIRONMENT") == "production" else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -196,21 +207,20 @@ def get_iconmask512():
 # Authentication Endpoints
 # ==========================================================================
 @app.post("/api/auth/register", response_model=schemas.Token, status_code=201)
-def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Register a new customer or vendor with bcrypt hashed password."""
-    existing_user = db.query(models.User).filter(models.User.email == user_in.email).first()
+@limiter.limit("15/minute")
+def register_user(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Register a new user (Customer, Seller, or Admin) with hashed password."""
+    existing_user = db.query(models.User).filter(
+        (models.User.email == user_in.email) | (models.User.phone == user_in.phone)
+    ).first()
     if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="البريد الإلكتروني مستخدم بالفعل"
-        )
-    
-    hashed_pwd = auth.hash_password(user_in.password)
+        raise HTTPException(status_code=400, detail="البريد الإلكتروني أو رقم الهاتف مسجل بالفعل")
+
     new_user = models.User(
         name=user_in.name,
         email=user_in.email,
         phone=user_in.phone,
-        password_hash=hashed_pwd,
+        password_hash=auth.hash_password(user_in.password),
         role=user_in.role or "customer"
     )
     db.add(new_user)
@@ -226,7 +236,8 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer", "user": new_user}
 
 @app.post("/api/auth/login", response_model=schemas.Token)
-def login_user(login_in: schemas.UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("15/minute")
+def login_user(request: Request, login_in: schemas.UserLogin, db: Session = Depends(get_db)):
     """Authenticate user with email/phone & password, returning JWT token."""
     clean_identifier = login_in.email_or_phone.strip().lower()
     clean_phone = login_in.email_or_phone.strip()
@@ -382,7 +393,9 @@ def download_excel_template():
 
 
 @app.post("/api/products/import-excel")
+@limiter.limit("20/minute")
 def import_products_excel(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_roles(["seller", "admin", "super_admin"]))
