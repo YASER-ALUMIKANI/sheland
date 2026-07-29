@@ -720,9 +720,37 @@ function removeCoupon() {
   if (inp) inp.value = '';
   const msg = document.getElementById('couponAppliedMsg');
   if (msg) { msg.innerText = ''; msg.style.display = 'none'; }
+  const chkInp = document.getElementById('checkoutCouponInput');
+  if (chkInp) chkInp.value = '';
+  const chkMsg = document.getElementById('checkoutCouponMsg');
+  if (chkMsg) { chkMsg.innerText = ''; chkMsg.style.display = 'none'; }
   updateCartUI();
   showToast('تم إلغاء كود الخصم.', 'info', '❌');
 }
+
+async function applyCheckoutCoupon() {
+  const input = document.getElementById('checkoutCouponInput');
+  const code = (input?.value || '').trim().toUpperCase();
+  if (!code) {
+    showToast('يرجى إدخال كود الخصم أولاً.', 'danger', '⚠️');
+    return;
+  }
+  // Sync code to main coupon input and run standard application logic
+  const mainInp = document.getElementById('couponCodeInput');
+  if (mainInp) mainInp.value = code;
+  await applyCouponCode();
+
+  const msgBox = document.getElementById('checkoutCouponMsg');
+  if (msgBox) {
+    if (activeCouponCode) {
+      msgBox.innerText = `✔️ تم تطبيق الكوبون (${activeCouponCode}): خصم ${formatPrice(activeDiscountAmount)}`;
+      msgBox.style.display = 'block';
+    } else {
+      msgBox.style.display = 'none';
+    }
+  }
+}
+
 
 
 function roundVal(num) {
