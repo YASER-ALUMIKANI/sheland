@@ -91,4 +91,15 @@ def test_import_products_excel():
     assert prod1.price == 15000
     assert prod1.cost_price == 9500
     assert prod1.compare_at_price == 22000
+
+    # 5. Import SAME file again (Duplicate Test) -> Should merge stock (15 + 15 = 30) instead of duplicate row
+    buffer.seek(0)
+    files2 = {"file": ("test_import_dup.xlsx", buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    res2 = client.post("/api/products/import-excel", headers=headers, files=files2)
+    assert res2.status_code == 200
+
+    # Verify no duplicate product row was created and stock was merged
+    prods = check_db.query(models.Product).filter(models.Product.title_ar == "ساعة يد رجالية استيل").all()
+    assert len(prods) == 1
+    assert prods[0].stock == 30  # 15 + 15 merged!
     check_db.close()

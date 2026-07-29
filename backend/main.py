@@ -112,6 +112,7 @@ def auto_seed_on_startup():
     db = SessionLocal()
     try:
         ensure_default_users(db)
+        deduplicate_all_products(db)
         if db.query(models.Product).count() == 0:
             seed_database(db)
     finally:
@@ -508,46 +509,140 @@ def import_products_excel(
         except ValueError:
             stock = 10
 
-        slug = f"{uuid.uuid4().hex[:8]}-{title_ar.replace(' ', '-')}"
+        # Deduplication & Merge logic: Match by SKU first, then by seller_id & title_ar
+        sku_clean = str(sku_val).strip() if sku_val else None
+        existing_product = None
 
-        db_product = models.Product(
-            seller_id=seller_id,
-            category_id=category.id,
-            title_ar=title_ar,
-            title_en=title_en,
-            slug=slug,
-            description=str(desc) if desc else None,
-            price=price,
-            compare_at_price=compare_price,
-            cost_price=cost_price,
-            image_url=str(img_url).strip(),
-            free_shipping=free_shipping,
-            cod_available=cod_avail,
-            is_featured=False
-        )
-        db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
+        if sku_clean:
+            v_match = db.query(models.ProductVariant).filter(models.ProductVariant.sku == sku_clean).first()
+            if v_match:
+                existing_product = db.query(models.Product).filter(models.Product.id == v_match.product_id).first()
 
-        db_variant = models.ProductVariant(
-            product_id=db_product.id,
-            sku=str(sku_val).strip() if sku_val else f"SKU-{db_product.id}",
-            color=str(color_val).strip() if color_val else None,
-            size=str(size_val).strip() if size_val else None,
-            stock=stock
-        )
-        db.add(db_variant)
-        db.commit()
+        if not existing_product:
+            existing_product = db.query(models.Product).filter(
+                (models.Product.seller_id == seller_id) &
+                (func.lower(models.Product.title_ar) == title_ar.lower())
+            ).first()
 
-        imported_count += 1
+        if existing_product:
+            # UPDATE & MERGE EXISTING PRODUCT
+            existing_product.price = price
+            if compare_price is not None:
+                existing_product.compare_at_price = compare_price
+            if cost_price > 0:
+                existing_product.cost_price = cost_price
+            if img_url:
+                existing_product.image_url = str(img_url).strip()
+            existing_product.category_id = category.id
+            existing_product.free_shipping = free_shipping
+            existing_product.cod_available = cod_avail
+            if desc:
+                existing_product.description = str(desc)
+
+            variant = None
+            if sku_clean:
+                variant = db.query(models.ProductVariant).filter(
+                    (models.ProductVariant.product_id == existing_product.id) &
+                    (models.ProductVariant.sku == sku_clean)
+                ).first()
+            if not variant:
+                variant = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == existing_product.id).first()
+
+            if variant:
+                variant.stock = (variant.stock or 0) + stock
+                if color_val:
+                    variant.color = str(color_val).strip()
+                if size_val:
+                    variant.size = str(size_val).strip()
+                if sku_clean:
+                    variant.sku = sku_clean
+            else:
+                variant = models.ProductVariant(
+                    product_id=existing_product.id,
+                    sku=sku_clean or f"SKU-{existing_product.id}",
+                    color=str(color_val).strip() if color_val else None,
+                    size=str(size_val).strip() if size_val else None,
+                    stock=stock
+                )
+                db.add(variant)
+
+            db.commit()
+            imported_count += 1
+        else:
+            # CREATE NEW UNIQUE PRODUCT
+            slug = f"seller-{seller_id}-{uuid.uuid4().hex[:6]}-{title_ar.replace(' ', '-')}"
+            db_product = models.Product(
+                seller_id=seller_id,
+                category_id=category.id,
+                title_ar=title_ar,
+                title_en=title_en,
+                slug=slug,
+                description=str(desc) if desc else None,
+                price=price,
+                compare_at_price=compare_price,
+                cost_price=cost_price,
+                image_url=str(img_url).strip(),
+                free_shipping=free_shipping,
+                cod_available=cod_avail,
+                is_featured=False
+            )
+            db.add(db_product)
+            db.commit()
+            db.refresh(db_product)
+
+            db_variant = models.ProductVariant(
+                product_id=db_product.id,
+                sku=sku_clean or f"SKU-{db_product.id}",
+                color=str(color_val).strip() if color_val else None,
+                size=str(size_val).strip() if size_val else None,
+                stock=stock
+            )
+            db.add(db_variant)
+            db.commit()
+
+            imported_count += 1
 
     return {
         "status": "success",
-        "message": f"تم استيراد {imported_count} منتج بنجاح!",
+        "message": f"تم معالجة ودمج {imported_count} منتج بنجاح في المنصة!",
         "imported_count": imported_count,
         "failed_count": failed_count,
         "errors": errors
     }
+
+
+def deduplicate_all_products(db: Session):
+    """Merges all duplicate products with the same seller and title_ar, summing their variant stock."""
+    products = db.query(models.Product).order_by(models.Product.id.asc()).all()
+    grouped = {}
+    for p in products:
+        key = (p.seller_id, p.title_ar.strip().lower())
+        if key not in grouped:
+            grouped[key] = []
+        grouped[key].append(p)
+
+    merged_count = 0
+    for key, prod_list in grouped.items():
+        if len(prod_list) > 1:
+            main_p = prod_list[0]
+            main_variant = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == main_p.id).first()
+            if not main_variant:
+                main_variant = models.ProductVariant(product_id=main_p.id, sku=f"SKU-{main_p.id}", stock=10)
+                db.add(main_variant)
+                db.commit()
+                db.refresh(main_variant)
+
+            for dup_p in prod_list[1:]:
+                for v in dup_p.variants:
+                    main_variant.stock += (v.stock or 0)
+                db.query(models.OrderItem).filter(models.OrderItem.product_id == dup_p.id).update({"product_id": main_p.id})
+                db.query(models.Review).filter(models.Review.product_id == dup_p.id).update({"product_id": main_p.id})
+                db.delete(dup_p)
+                merged_count += 1
+
+            db.commit()
+
+    return merged_count
 
 
 @app.get("/api/products/{product_id}", response_model=schemas.ProductResponse)
