@@ -47,6 +47,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def ensure_default_users(db: Session):
+    """Ensures Admin & Seller default accounts exist with valid bcrypt password hashes."""
+    admin = db.query(models.User).filter(models.User.email == "admin@sheland.com").first()
+    if not admin:
+        admin = models.User(
+            name="مدير منصة شي لاند",
+            email="admin@sheland.com",
+            phone="0770000000",
+            password_hash=auth.hash_password("admin123"),
+            role="admin"
+        )
+        db.add(admin)
+        db.commit()
+    else:
+        admin.password_hash = auth.hash_password("admin123")
+        admin.role = "admin"
+        db.commit()
+
+    seller_user = db.query(models.User).filter(models.User.email == "seller@sheland.com").first()
+    if not seller_user:
+        seller_user = models.User(
+            name="متجر شي لاند الرسمي",
+            email="seller@sheland.com",
+            phone="0771111111",
+            password_hash=auth.hash_password("seller123"),
+            role="seller"
+        )
+        db.add(seller_user)
+        db.commit()
+        db.refresh(seller_user)
+
+        seller = db.query(models.Seller).filter(models.Seller.user_id == seller_user.id).first()
+        if not seller:
+            seller = models.Seller(user_id=seller_user.id, store_name="Sheland Official Store", rating=4.8)
+            db.add(seller)
+            db.commit()
+    else:
+        seller_user.password_hash = auth.hash_password("seller123")
+        seller_user.role = "seller"
+        db.commit()
+
 @app.on_event("startup")
 def auto_seed_on_startup():
     from .database import SessionLocal, engine
@@ -65,6 +106,7 @@ def auto_seed_on_startup():
 
     db = SessionLocal()
     try:
+        ensure_default_users(db)
         if db.query(models.Product).count() == 0:
             seed_database(db)
     finally:
