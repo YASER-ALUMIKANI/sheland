@@ -22,7 +22,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .database import Base, engine, get_db
-from . import models, schemas, analytics, auth
+from . import models, schemas, analytics, auth, cache
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
@@ -264,7 +264,13 @@ def get_me(current_user: models.User = Depends(auth.require_current_user)):
 # --- Category Endpoints ---
 @app.get("/api/categories", response_model=List[schemas.CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
-    return db.query(models.Category).all()
+    cached = cache.get_cache("cache:categories")
+    if cached is not None:
+        return cached
+    categories = db.query(models.Category).all()
+    result = [schemas.CategoryResponse.from_orm(c) for c in categories]
+    cache.set_cache("cache:categories", [c.dict() for c in result], expire_seconds=600)
+    return result
 
 # --- Product Endpoints ---
 @app.get("/api/products", response_model=List[schemas.ProductResponse])
@@ -279,6 +285,12 @@ def get_products(
     sort_by: Optional[str] = "relevance",
     db: Session = Depends(get_db)
 ):
+    cache_key = f"cache:products:{category_id or 'all'}:{sort_by}" if not search and min_price is None and max_price is None else None
+    if cache_key:
+        cached = cache.get_cache(cache_key)
+        if cached is not None:
+            return cached
+
     query = db.query(models.Product)
 
     if category_id:
@@ -314,7 +326,12 @@ def get_products(
         query = query.order_by(models.Product.is_featured.desc(), models.Product.id.desc())
 
     products = query.all()
-    return [schemas.ProductResponse.from_orm_with_stock(p) for p in products]
+    results = [schemas.ProductResponse.from_orm_with_stock(p) for p in products]
+
+    if cache_key:
+        cache.set_cache(cache_key, [r.dict() for r in results], expire_seconds=300)
+
+    return results
 
 
 # --- Excel Bulk Import & Template Endpoints ---
@@ -615,6 +632,7 @@ def import_products_excel(
 
             imported_count += 1
 
+    cache.clear_cache_by_prefix("cache:products")
     return {
         "status": "success",
         "message": f"تم معالجة ودمج {imported_count} منتج بنجاح في المنصة!",
