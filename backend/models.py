@@ -122,7 +122,8 @@ class Order(Base):
     total_amount = Column(Float, nullable=False)
     shipping_address = Column(Text, nullable=False)
     payment_method = Column(String, nullable=False)
-    payment_status = Column(String, default="paid")
+    payment_status = Column(String, default="pending")
+    payment_tx_id = Column(String, nullable=True)
     # ponytail: Dynamic shipping parcel attributes configurable by order department staff
     parcel_count = Column(String, default="1 من 1")
     weight = Column(String, default="0.85 كجم")

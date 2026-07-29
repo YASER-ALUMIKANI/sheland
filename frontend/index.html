@@ -569,9 +569,28 @@
         <textarea id="custAddress" placeholder="عنوان التوصيل الشامل (المدينة، الحي، اسم الشارع)" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; height: 80px;"></textarea>
 
         <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">2. اختر طريقة الدفع</h3>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-          <label style="display: flex; align-items: center; gap: 10px; padding: 14px; border: 2px solid var(--primary); border-radius: var(--radius-sm); cursor: pointer; background: var(--accent);"><input type="radio" name="payMethod" value="COD" checked> 💵 الدفع عند الاستلام (Cash on Delivery)</label>
-          <label style="display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"><input type="radio" name="payMethod" value="BANK"> 🏦 التحويل البنكي المسبق</label>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: var(--accent); font-weight: 700;">
+            <input type="radio" name="payMethod" value="COD" checked onchange="toggleWalletBox(false)"> 💵 الدفع عند الاستلام (Cash on Delivery)
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700;">
+            <input type="radio" name="payMethod" value="KURAIMI" onchange="toggleWalletBox(true, 'kuraimi')"> 🏦 حاسب الكريمي (Kuraimi Pay - 3048572019)
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700;">
+            <input type="radio" name="payMethod" value="ONECASH" onchange="toggleWalletBox(true, 'onecash')"> 📱 محفظة وان كاش (OneCash - 775990011)
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700;">
+            <input type="radio" name="payMethod" value="JAWALI" onchange="toggleWalletBox(true, 'jawali')"> 📲 محفظة جوالي (Jawali - 771122334)
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700;">
+            <input type="radio" name="payMethod" value="FLOOSAK" onchange="toggleWalletBox(true, 'floosak')"> 💳 محفظة فلوسك (Floosak - 730998877)
+          </label>
+        </div>
+
+        <div id="walletTxBox" style="display: none; background: #F7FAFC; padding: 14px; border: 1px dashed var(--primary); border-radius: var(--radius-sm); margin-bottom: 16px;">
+          <p id="walletInstructions" style="font-size: 13px; color: #2D3748; font-weight: 600; margin-bottom: 8px; line-height: 1.5;"></p>
+          <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 4px;">رقم الحوالة / العملية من المحفظة *:</label>
+          <input type="text" id="walletTxId" placeholder="مثال: 987654321" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
         </div>
 
         <button onclick="submitOrderProcess()" style="width: 100%; background: var(--success); color: white; font-weight: 800; padding: 14px; border-radius: var(--radius-md); font-size: 16px;">تأكيد الطلب الآن ✔️</button>

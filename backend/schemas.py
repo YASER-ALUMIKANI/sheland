@@ -119,6 +119,7 @@ class OrderCreate(BaseModel):
     phone: Optional[str] = None
     shipping_address: str
     payment_method: str = "COD"
+    payment_tx_id: Optional[str] = None
     items: List[CartItemCreate]
 
 class OrderItemResponse(BaseModel):
@@ -144,6 +145,8 @@ class OrderResponse(BaseModel):
     phone: Optional[str] = None
     shipping_address: str
     payment_method: str
+    payment_status: Optional[str] = "pending"
+    payment_tx_id: Optional[str] = None
     status: str
     total_amount: float
     parcel_count: Optional[str] = "1 من 1"

@@ -22,7 +22,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .database import Base, engine, get_db
-from . import models, schemas, analytics, auth, cache
+from . import models, schemas, analytics, auth, cache, payments
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
@@ -859,8 +859,23 @@ def track_order(order_number: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
+# --- Payment Gateways Endpoints ---
+@app.get("/api/payments/methods")
+def get_payment_methods():
+    """Returns list of supported payment methods and Yemeni digital wallets."""
+    return payments.get_payment_methods()
+
+@app.post("/api/payments/verify")
+def verify_payment(payload: dict):
+    """Verifies transaction reference code for digital wallet payments."""
+    method = payload.get("method", "cod")
+    tx_id = payload.get("tx_id")
+    amount = float(payload.get("amount", 0))
+    return payments.verify_payment_transaction(method, tx_id, amount)
+
 @app.post("/api/orders", response_model=schemas.OrderResponse)
-def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def create_order(request: Request, order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
     # ponytail: Stock validation pass — check exact total available stock across variants
     stock_errors = []
     for item in order_in.items:
@@ -887,6 +902,9 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
 
     total = 0.0
     order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+    pay_method = (order_in.payment_method or "COD").lower()
+    pay_status = "pending_delivery" if pay_method in ["cod", "cash"] else ("paid" if order_in.payment_tx_id else "pending_verification")
+
     db_order = models.Order(
         order_number=order_number,
         user_id=order_in.user_id,
@@ -894,6 +912,8 @@ def create_order(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
         phone=order_in.phone or "967770000000",
         shipping_address=order_in.shipping_address,
         payment_method=order_in.payment_method,
+        payment_status=pay_status,
+        payment_tx_id=order_in.payment_tx_id,
         total_amount=total,
         status="قيد المعالجة"
     )

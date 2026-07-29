@@ -968,11 +968,38 @@ function closeCheckoutModal() {
   document.getElementById('checkoutModal').classList.remove('active');
 }
 
+function toggleWalletBox(show, method) {
+  const box = document.getElementById('walletTxBox');
+  const inst = document.getElementById('walletInstructions');
+  if (!box || !inst) return;
+
+  if (!show) {
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = 'block';
+  const instructionsMap = {
+    'kuraimi': '🏦 يرجى تحويل مبلغ الطلب عبر حاسب الكريمي إلى الحساب (3048572019) باسم شركة شي لاند، ثم ادخل رقم السند أدناه.',
+    'onecash': '📱 يرجى تحويل مبلغ الطلب عبر محفظة وان كاش إلى الرقم (775990011)، ثم أدخل رقم العملية الصادرة.',
+    'jawali': '📲 يرجى تحويل مبلغ الطلب عبر محفظة جوالي إلى الحساب (771122334)، ثم أدخل الرقم المرجعي.',
+    'floosak': '💳 يرجى تحويل مبلغ الطلب عبر محفظة فلوسك إلى الحساب (730998877)، ثم أدخل رمز الإشعار.'
+  };
+  inst.innerText = instructionsMap[method] || 'يرجى تحويل مبلغ الطلب إلى المحفظة المحددة وأدخل رقم العملية لتأكيد الحجز.';
+}
+
 async function submitOrderProcess() {
   const name = document.getElementById('custName').value.trim() || localStorage.getItem('sheland_user_name') || "عميل شي لاند";
   const phone = document.getElementById('custPhone').value.trim() || localStorage.getItem('sheland_user_phone') || "770000000";
   const address = document.getElementById('custAddress').value.trim() || "مدينة البيضاء";
   const payMethod = document.querySelector('input[name="payMethod"]:checked')?.value || "COD";
+  const txInput = document.getElementById('walletTxId');
+  const txId = txInput ? txInput.value.trim() : null;
+
+  if (payMethod !== "COD" && (!txId || txId.length < 4)) {
+    alert("⚠️ يرجى إدخال رقم العملية / الحوالة الصحيحة الصادرة من المحفظة الإلكترونية لتأكيد الطلب");
+    return;
+  }
 
   const orderPayload = {
     user_id: 1,
@@ -980,6 +1007,7 @@ async function submitOrderProcess() {
     phone: phone,
     shipping_address: `${name} (${phone}) - ${address}`,
     payment_method: payMethod,
+    payment_tx_id: txId,
     items: cart.map(i => ({ product_id: i.id, quantity: i.qty }))
   };
 
