@@ -109,15 +109,22 @@ def get_payment_methods(db: Optional[Session] = None, active_only: bool = True) 
     return DEFAULT_PAYMENT_METHODS
 
 
+import logging
+
+logger = logging.getLogger("sheland.payments")
+
 def verify_payment_transaction(method_id: str, tx_id: Optional[str], amount: float) -> Dict[str, Any]:
-    """Verifies transfer transaction reference for digital wallets."""
+    """Verifies transfer transaction reference for digital wallets with audit logging."""
+    clean_tx = str(tx_id).strip() if tx_id else ""
     if method_id.lower() in ["cod", "cash"]:
+        logger.info(f"💵 Payment transaction initiated via COD: method={method_id}, amount={amount}")
         return {"success": True, "status": "pending_delivery", "message": "تم اعتماد الطلب بخيار الدفع عند الاستلام"}
 
-    if not tx_id or len(str(tx_id).strip()) < 4:
+    if not tx_id or len(clean_tx) < 4:
+        logger.warning(f"⚠️ Invalid payment attempt: method={method_id}, tx_id='{clean_tx}', amount={amount}")
         return {"success": False, "status": "failed", "message": "يرجى إدخال رقم العملية / الحوالة الصحيح من المحفظة الإلكترونية"}
 
-    clean_tx = str(tx_id).strip()
+    logger.info(f"✅ Payment transaction verified: method={method_id}, tx_id='{clean_tx}', amount={amount}")
     return {
         "success": True,
         "status": "paid",

@@ -9,8 +9,11 @@ import shutil
 import io
 import csv
 import re
+import time
 import logging
 from datetime import datetime, timedelta
+
+logger = logging.getLogger("sheland.api")
 
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
@@ -108,6 +111,24 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+# Security Middleware: Request Audit & Performance Logging (CWE-778 Fix)
+@app.middleware("http")
+async def log_requests_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    client_ip = request.client.host if (request and request.client) else "unknown"
+    
+    logger.info(
+        f"🌐 API Audit: {request.method} {request.url.path} "
+        f"| Status: {response.status_code} "
+        f"| Time: {duration:.3f}s "
+        f"| IP: {client_ip}"
+    )
+    return response
+
 
 
 # Security Middleware: Anti-CSRF Protection Middleware for State-Changing Requests
@@ -468,6 +489,12 @@ def admin_update_user_role(
     db.commit()
     db.refresh(target_user)
 
+    client_ip = request.client.host if (request and request.client) else "unknown"
+    logger.warning(
+        f"🔐 Security Audit: Role changed for user_id={target_user.id} ({target_user.email}) "
+        f"from '{old_role}' to '{new_role}' by admin={current_admin.id} ({current_admin.email}) from IP={client_ip}"
+    )
+
     # Audit log
     audit = models.AuditLog(
         action="role_change",
@@ -497,21 +524,25 @@ def get_audit_logs(
 @app.post("/api/auth/login", response_model=schemas.Token)
 @limiter.limit("15/minute")
 def login_user(request: Request, login_in: schemas.UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user with email/phone & password, returning JWT token."""
+    """Authenticate user with email/phone & password, returning JWT token with audit logging."""
     clean_identifier = login_in.email_or_phone.strip().lower()
     clean_phone = login_in.email_or_phone.strip()
+    client_ip = request.client.host if (request and request.client) else "unknown"
 
     user = db.query(models.User).filter(
         (func.lower(models.User.email) == clean_identifier) | (models.User.phone == clean_phone)
     ).first()
     
     if not user or not auth.verify_password(login_in.password.strip(), user.password_hash):
+        masked_id = clean_identifier[:3] + "***" if len(clean_identifier) > 3 else "***"
+        logger.warning(f"🚨 Security Audit: Failed login attempt for user/identifier '{masked_id}' from IP={client_ip}")
         raise HTTPException(
             status_code=401,
             detail="بيانات الدخول غير صحيحة (البريد الإلكتروني/رقم الجوال أو كلمة المرور خطأ)"
         )
     
     token = auth.create_access_token({"sub": str(user.id), "role": user.role})
+    logger.info(f"✅ Security Audit: Successful login for user_id={user.id}, role={user.role} from IP={client_ip}")
     return {"access_token": token, "token_type": "bearer", "user": user}
 
 @app.get("/api/auth/me", response_model=schemas.UserResponse)
