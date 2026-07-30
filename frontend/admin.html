@@ -1305,8 +1305,17 @@
     }
 
 
+    function getCleanShippingAddress(order) {
+      let addr = order.shipping_address || 'مدينة البيضاء';
+      const cleanPhone = order.phone || (order.user ? order.user.phone : '');
+      if (cleanPhone && addr) {
+        addr = addr.replace(/\(\+?\d{6,14}\)/g, `(${cleanPhone})`);
+      }
+      return addr;
+    }
+
     function getCleanCustomerWhatsApp(order) {
-      let targetPhone = order.phone || '';
+      let targetPhone = order.phone || (order.user ? order.user.phone : '');
       if (!targetPhone && order.shipping_address) {
         const match = order.shipping_address.match(/(\+?\d{8,14})/);
         if (match) targetPhone = match[1];
@@ -1318,6 +1327,7 @@
       if (!digits.startsWith('967') && digits.length <= 9) digits = '967' + digits;
       return digits;
     }
+
 
     async function updateOrderStatus(orderId, newStatus) {
       const order = adminOrders.find(o => o.id === orderId);
@@ -1423,7 +1433,7 @@
         const st = o.status || 'قيد المعالجة';
         const isPaid = o.payment_status === 'paid';
         const currentPhone = o.phone || (o.user ? o.user.phone : '');
-        const addressHtml = o.shipping_address || 'مدينة البيضاء';
+        const addressHtml = getCleanShippingAddress(o);
         const phoneSubBadge = currentPhone ? `<div style="font-size:11px; color:#8B2C7C; font-weight:800; margin-top:2px;">📱 الجوال المحدث: ${currentPhone}</div>` : '';
 
         const payStatusBadge = isPaid
@@ -1528,7 +1538,7 @@
       const invoicesHtml = adminOrders.map((order, idx) => {
         const orderNum = order.order_number;
         const total = `${order.total_amount || 0} ر.ي`;
-        const fullAddr = order.shipping_address || 'مدينة البيضاء';
+        const fullAddr = getCleanShippingAddress(order);
         const phone = getCleanCustomerWhatsApp(order);
         const customerName = order.customer_name || 'عميل منصة شي لاند';
         const itemsList = (order.items && order.items.length > 0) ? order.items : [
@@ -1669,7 +1679,7 @@
 
       const orderNum = order.order_number;
       const total = `${order.total_amount || 0} ر.ي`;
-      const fullAddr = order.shipping_address || 'مدينة البيضاء';
+      const fullAddr = getCleanShippingAddress(order);
       const phone = getCleanCustomerWhatsApp(order);
       const customerName = order.customer_name || 'عميل منصة شي لاند';
       const itemsList = (order.items && order.items.length > 0) ? order.items : [
@@ -1797,7 +1807,7 @@
 
       const orderNum = order.order_number;
       const total = `${order.total_amount || 0} ر.ي`;
-      const fullAddr = order.shipping_address || 'مدينة البيضاء';
+      const fullAddr = getCleanShippingAddress(order);
       const phone = getCleanCustomerWhatsApp(order);
       const customerName = order.customer_name || 'عميل منصة شي لاند';
       const shippingDate = new Date(order.created_at || Date.now()).toLocaleDateString('ar-EG');

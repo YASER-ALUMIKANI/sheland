@@ -420,21 +420,29 @@ def update_user_profile(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_current_user)
 ):
-    """Updates authenticated user's profile info (name, phone) and updates their orders' phone numbers."""
+    """Updates authenticated user's profile info (name, phone) and updates their orders' phone numbers and shipping_address strings."""
+    import re
     if profile_in.name:
         current_user.name = profile_in.name.strip()
     if profile_in.phone:
         clean_phone = profile_in.phone.strip()
+        old_phone = current_user.phone
         current_user.phone = clean_phone
         
-        # Sync updated phone number to existing orders of this user
-        db.query(models.Order).filter(
-            models.Order.user_id == current_user.id
-        ).update({"phone": clean_phone}, synchronize_session=False)
+        # Sync updated phone number and update shipping_address string in existing orders
+        orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
+        for order in orders:
+            order.phone = clean_phone
+            if order.shipping_address:
+                if old_phone and old_phone in order.shipping_address:
+                    order.shipping_address = order.shipping_address.replace(old_phone, clean_phone)
+                else:
+                    order.shipping_address = re.sub(r'\(\+?\d{6,14}\)', f'({clean_phone})', order.shipping_address)
 
     db.commit()
     db.refresh(current_user)
     return current_user
+
 
 @app.post("/api/auth/logout")
 
