@@ -14,12 +14,60 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from . import models
 
-# ponytail: Read secret from env or use strong fallback for development
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "sheland-secure-jwt-secret-key-2026-cityland")
+import secrets
+import logging
+
+logger = logging.getLogger("sheland.auth")
+
+# Known weak/predictable fallback keys to reject for production safety
+WEAK_SECRETS = {
+    "sheland_secret_jwt_key_super_secure_2026",
+    "sheland-secure-jwt-secret-key-2026-cityland",
+    "change_this_to_a_random_secure_secret_key",
+    "secret",
+    "secretkey",
+    "123456",
+    "admin123"
+}
+
+# Resolve secret from environment (checking JWT_SECRET_KEY first, then SECRET_KEY)
+_env_secret = os.getenv("JWT_SECRET_KEY") or os.getenv("SECRET_KEY")
+
+if not _env_secret:
+    SECRET_KEY = secrets.token_hex(32)
+    logger.warning(
+        "⚠️ JWT_SECRET_KEY / SECRET_KEY is not set! Auto-generated dynamic key (%s...). "
+        "User sessions will be invalidated on server restart. Set SECRET_KEY in .env for persistent tokens.",
+        SECRET_KEY[:8]
+    )
+elif _env_secret in WEAK_SECRETS or len(_env_secret) < 32:
+    logger.warning(
+        "⚠️ SECURITY WARNING: The configured SECRET_KEY is weak or predictable! "
+        "Generating a high-entropy 256-bit dynamic key for this session."
+    )
+    SECRET_KEY = secrets.token_hex(32)
+else:
+    SECRET_KEY = _env_secret
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days expiration
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours (1 day expiration)
+
+# In-memory & Cache-backed Token Blacklist / Revocation
+_token_blacklist = set()
+
+def revoke_token(token: str) -> bool:
+    """Revoke/blacklist a JWT token (e.g. on logout or security invalidation)."""
+    if token:
+        _token_blacklist.add(token)
+        return True
+    return False
+
+def is_token_revoked(token: str) -> bool:
+    """Check if a JWT token has been revoked/blacklisted."""
+    return token in _token_blacklist
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
 
 def hash_password(password: str) -> str:
     """Hash plain password using native bcrypt."""
@@ -48,11 +96,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def decode_access_token(token: str) -> Optional[dict]:
     """Decode and validate JWT access token."""
+    if not token or is_token_revoked(token):
+        return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except jwt.PyJWTError:
         return None
+
 
 def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Optional[models.User]:
     """FastAPI dependency to extract and return current authenticated user."""

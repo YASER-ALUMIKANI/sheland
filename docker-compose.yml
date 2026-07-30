@@ -12,7 +12,8 @@ services:
     environment:
       - PORT=8000
       - ENVIRONMENT=production
-      - SECRET_KEY=sheland_secret_jwt_key_super_secure_2026
+      - SECRET_KEY=c3f19e48710ab52d96c4a8f3e271b05a7d91e84239f60e1d8a3b5c7e9f0a2b4c
+      - JWT_SECRET_KEY=c3f19e48710ab52d96c4a8f3e271b05a7d91e84239f60e1d8a3b5c7e9f0a2b4c
     volumes:
       - ./backend/sheland.db:/app/backend/sheland.db
     healthcheck:

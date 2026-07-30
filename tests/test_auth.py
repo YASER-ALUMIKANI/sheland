@@ -86,3 +86,34 @@ def test_invalid_credentials_login(client):
     }
     response = client.post("/api/auth/login", json=login_payload)
     assert response.status_code == 401
+
+def test_token_revocation_and_logout(client):
+    data = {"sub": "100", "role": "customer"}
+    token = auth.create_access_token(data)
+    assert auth.decode_access_token(token) is not None
+
+    # Revoke token
+    auth.revoke_token(token)
+    assert auth.is_token_revoked(token) is True
+    assert auth.decode_access_token(token) is None
+
+    # Test logout API endpoint
+    reg_payload = {
+        "name": "مستخدم خروج",
+        "email": "logout_user@sheland.com",
+        "phone": "0778887766",
+        "password": "logout_password_123",
+        "role": "customer"
+    }
+    reg_res = client.post("/api/auth/register", json=reg_payload).json()
+    user_token = reg_res["access_token"]
+
+    headers = {"Authorization": f"Bearer {user_token}"}
+    logout_res = client.post("/api/auth/logout", headers=headers)
+    assert logout_res.status_code == 200
+    assert "تم تسجيل الخروج" in logout_res.json()["message"]
+
+    # Subsequent request using the revoked token should be rejected (401)
+    me_res = client.get("/api/auth/me", headers=headers)
+    assert me_res.status_code == 401
+

@@ -288,8 +288,16 @@ def get_me(current_user: models.User = Depends(auth.require_current_user)):
     """Return currently authenticated user profile."""
     return current_user
 
+@app.post("/api/auth/logout")
+def logout_user(token: Optional[str] = Depends(auth.oauth2_scheme)):
+    """Logout current user and invalidate (blacklist) their JWT access token."""
+    if token:
+        auth.revoke_token(token)
+    return {"message": "تم تسجيل الخروج وإلغاء صلاحية التوكن بنجاح."}
+
 
 # --- Category Endpoints ---
+
 @app.get("/api/categories", response_model=List[schemas.CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
     cached = cache.get_cache("cache:categories")
