@@ -1061,7 +1061,13 @@ def delete_product(
 
 # --- Orders Endpoints ---
 @app.get("/api/orders", response_model=List[schemas.OrderResponse])
-def get_orders(phone: Optional[str] = None, user_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_orders(
+    phone: Optional[str] = None,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_roles(["admin", "super_admin", "sales_manager"]))
+):
+    """Admin/Sales Manager endpoint to query orders. Protected against unauthorized access."""
     query = db.query(models.Order)
     if user_id:
         query = query.filter(models.Order.user_id == user_id)
@@ -1072,6 +1078,7 @@ def get_orders(phone: Optional[str] = None, user_id: Optional[int] = None, db: S
             (models.Order.shipping_address.like(f"%{clean_phone}%"))
         )
     return query.order_by(models.Order.id.desc()).all()
+
 
 
 @app.get("/api/orders/my", response_model=List[schemas.OrderResponse])
@@ -1241,9 +1248,19 @@ def verify_payment(payload: dict):
 
 @app.post("/api/orders", response_model=schemas.OrderResponse)
 @limiter.limit("30/minute")
-def create_order(request: Request, order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
+def create_order(
+    request: Request,
+    order_in: schemas.OrderCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(auth.get_current_user)
+):
+    """Creates a new order bound to current authenticated user (or guest) securely."""
+    # Determine effective user_id (prefer authenticated JWT user_id over unverified payload)
+    effective_user_id = current_user.id if current_user else order_in.user_id
+
     # ponytail: Stock validation pass — check exact total available stock across variants
     stock_errors = []
+
     for item in order_in.items:
         prod = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not prod:
@@ -1273,10 +1290,11 @@ def create_order(request: Request, order_in: schemas.OrderCreate, db: Session = 
 
     db_order = models.Order(
         order_number=order_number,
-        user_id=order_in.user_id,
-        customer_name=order_in.customer_name or "عميل شي لاند",
-        phone=order_in.phone or "967770000000",
+        user_id=effective_user_id,
+        customer_name=order_in.customer_name or (current_user.name if current_user else "عميل شي لاند"),
+        phone=order_in.phone or (current_user.phone if current_user else "967770000000"),
         shipping_address=order_in.shipping_address,
+
         payment_method=order_in.payment_method,
         payment_status=pay_status,
         payment_tx_id=order_in.payment_tx_id,
