@@ -1595,7 +1595,7 @@ async function performCustomerLogout() {
   localStorage.removeItem('sheland_user_address');
   localStorage.removeItem('sheland_user_orders');
 
-  showToast("تم تسجيل الخروج ومسح بيانات الجلسة السابقة بنجاح! 🚪", 'info', '🔒');
+  showToast("تم تسجيل الخروج  بنجاح! 🚪", 'info', '🔒');
   closeAccountModal();
   setTimeout(() => location.reload(), 600);
 }
