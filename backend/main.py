@@ -16,7 +16,7 @@ from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import openpyxl
@@ -108,6 +108,49 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+# Security Middleware: Anti-CSRF Protection Middleware for State-Changing Requests
+EXEMPT_CSRF_PATHS = {"/docs", "/openapi.json", "/redoc"}
+
+@app.middleware("http")
+async def csrf_protection_middleware(request: Request, call_next):
+    if request.method in ["POST", "PUT", "DELETE"] and request.url.path not in EXEMPT_CSRF_PATHS:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        x_requested_with = request.headers.get("x-requested-with")
+
+        # 1. Validate Origin header (Cross-Origin Protection)
+        if origin and origin not in ALLOWED_ORIGINS:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "🚨 CSRF Error: Invalid or unauthorized Origin header"}
+            )
+
+        # 2. Validate Referer header if Origin is not set
+        if referer and not any(referer.startswith(o) for o in ALLOWED_ORIGINS):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "🚨 CSRF Error: Invalid or unauthorized Referer header"}
+            )
+
+        # 3. Enforce X-Requested-With for browser requests (when Origin/Referer/Sec-Fetch-Site is present)
+        if (origin or referer or request.headers.get("sec-fetch-site")) and x_requested_with != "XMLHttpRequest":
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "🚨 CSRF Error: Missing or invalid X-Requested-With header"}
+            )
+
+        # 4. Explicit check if X-Requested-With is present but with wrong value
+        if x_requested_with and x_requested_with != "XMLHttpRequest":
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "🚨 CSRF Error: Missing or invalid X-Requested-With header"}
+            )
+
+    return await call_next(request)
+
+
 
 
 # Strict CORS Configuration with Validation, Fail-Closed, Subdomains & Logging

@@ -30,6 +30,7 @@ function clearAuthToken() {
 async function authFetch(url, options = {}) {
   const token = getAuthToken();
   const headers = options.headers || {};
+  headers['X-Requested-With'] = 'XMLHttpRequest';
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -666,7 +667,7 @@ async function submitProductReview() {
   };
 
   try {
-    const res = await fetch(`${API_BASE}/products/${currentModalProduct.id}/reviews`, {
+    const res = await authFetch(`${API_BASE}/products/${currentModalProduct.id}/reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1173,7 +1174,7 @@ async function submitOrderProcess() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/orders`, {
+    const res = await authFetch(`${API_BASE}/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(orderPayload)
@@ -1338,7 +1339,7 @@ async function handleCustomerLogin(e) {
   try {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ email_or_phone, password })
     });
 
@@ -1375,7 +1376,7 @@ async function handleCustomerRegister(e) {
   try {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ name, email, phone, password, role: 'customer' })
     });
 

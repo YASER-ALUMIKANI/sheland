@@ -880,6 +880,7 @@
     function getAuthHeaders(extraHeaders = {}) {
       const token = localStorage.getItem('sheland_jwt_token') || '';
       return {
+        'X-Requested-With': 'XMLHttpRequest',
         ...extraHeaders,
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
