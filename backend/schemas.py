@@ -41,6 +41,11 @@ class AdminUserCreate(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str = Field(..., description="customer, seller, sales_manager, admin")
 
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+
+
 class UserLogin(BaseModel):
     email_or_phone: str
     password: str

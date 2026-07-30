@@ -414,7 +414,30 @@ def get_me(current_user: models.User = Depends(auth.require_current_user)):
     """Return currently authenticated user profile."""
     return current_user
 
+@app.put("/api/auth/profile", response_model=schemas.UserResponse)
+def update_user_profile(
+    profile_in: schemas.UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_current_user)
+):
+    """Updates authenticated user's profile info (name, phone) and updates their orders' phone numbers."""
+    if profile_in.name:
+        current_user.name = profile_in.name.strip()
+    if profile_in.phone:
+        clean_phone = profile_in.phone.strip()
+        current_user.phone = clean_phone
+        
+        # Sync updated phone number to existing orders of this user
+        db.query(models.Order).filter(
+            models.Order.user_id == current_user.id
+        ).update({"phone": clean_phone}, synchronize_session=False)
+
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
 @app.post("/api/auth/logout")
+
 def logout_user(token: Optional[str] = Depends(auth.oauth2_scheme)):
     """Logout current user and invalidate (blacklist) their JWT access token."""
     if token:

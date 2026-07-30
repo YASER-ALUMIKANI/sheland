@@ -1397,7 +1397,7 @@ async function handleCustomerRegister(e) {
   }
 }
 
-function saveCustomerProfileSettings(e) {
+async function saveCustomerProfileSettings(e) {
   if (e) e.preventDefault();
   const name = document.getElementById('accCustName').value.trim();
   const phone = document.getElementById('accCustPhone').value.trim();
@@ -1412,6 +1412,23 @@ function saveCustomerProfileSettings(e) {
   localStorage.setItem('sheland_user_phone', phone);
   localStorage.setItem('sheland_user_address', address);
 
+  // Sync profile update to backend database if authenticated
+  const token = localStorage.getItem('sheland_jwt_token');
+  if (token) {
+    try {
+      await fetch(`${API_BASE}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, phone })
+      });
+    } catch (err) {
+      console.log("Could not push profile update to server", err);
+    }
+  }
+
   if (document.getElementById('accCurrentPhoneDisplay')) {
     document.getElementById('accCurrentPhoneDisplay').innerText = phone;
   }
@@ -1421,6 +1438,7 @@ function saveCustomerProfileSettings(e) {
   fetchAccountOrdersByPhone();
   switchAccountSubTab('orders');
 }
+
 
 async function fetchAccountOrdersByPhone() {
   const phone = localStorage.getItem('sheland_user_phone') || '';

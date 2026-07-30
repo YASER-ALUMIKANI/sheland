@@ -1422,6 +1422,10 @@
       tbody.innerHTML = orders.map(o => {
         const st = o.status || 'قيد المعالجة';
         const isPaid = o.payment_status === 'paid';
+        const currentPhone = o.phone || (o.user ? o.user.phone : '');
+        const addressHtml = o.shipping_address || 'مدينة البيضاء';
+        const phoneSubBadge = currentPhone ? `<div style="font-size:11px; color:#8B2C7C; font-weight:800; margin-top:2px;">📱 الجوال المحدث: ${currentPhone}</div>` : '';
+
         const payStatusBadge = isPaid
           ? '<span style="background:#C6F6D5; color:#22543D; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:2px;">✔️ مدفوع</span>'
           : '<span style="background:#FEFCBF; color:#744210; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:2px;">⏳ قيد التحقق</span>';
@@ -1431,7 +1435,11 @@
         return `
           <tr>
             <td style="font-weight:800; color:var(--primary-dark);">${o.order_number}</td>
-            <td>${o.shipping_address || 'مدينة البيضاء'}</td>
+            <td>
+              <div>${addressHtml}</div>
+              ${phoneSubBadge}
+            </td>
+
             <td>
               <span style="background:#E0F2F1; color:#00695C; font-weight:700; font-size:11px; padding:2px 6px; border-radius:4px;">${o.payment_method}</span>
               <br>${payStatusBadge}
