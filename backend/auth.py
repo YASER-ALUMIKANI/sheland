@@ -76,16 +76,17 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify plain password against bcrypt hash or plain text fallback."""
-    if not hashed_password:
+    """Strictly verify plain password against bcrypt hash without plaintext fallback."""
+    if not plain_password or not hashed_password:
         return False
     try:
         pwd_bytes = plain_password.encode('utf-8')[:72]
         hash_bytes = hashed_password.encode('utf-8')
         return bcrypt.checkpw(pwd_bytes, hash_bytes)
-    except Exception:
-        # Fallback if hash is plain text or invalid format from legacy database
-        return plain_password == hashed_password
+    except Exception as e:
+        logger.error(f"🚨 Password verification failed or invalid hash format: {e}")
+        return False
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create signed JWT access token."""

@@ -1020,7 +1020,14 @@ def update_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Strict Ownership Validation: Sellers can only modify their own products (Admins bypass)
+    if current_user.role not in ["admin", "super_admin"]:
+        seller = db.query(models.Seller).filter(models.Seller.user_id == current_user.id).first()
+        if not seller or db_product.seller_id != seller.id:
+            raise HTTPException(status_code=403, detail="غير مصرح: ليس لديك صلاحية تعديل هذا المنتج")
+
     db_product.title_ar = product_in.title_ar
+
     db_product.title_en = product_in.title_en
     db_product.category_id = product_in.category_id
     db_product.price = product_in.price
