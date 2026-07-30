@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from PIL import Image
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -30,6 +31,56 @@ from . import models, schemas, analytics, auth, cache, payments
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def validate_and_save_image(file_bytes: bytes, prefix: str = "img") -> str:
+    """
+    Strict security validation for uploaded images:
+    1. Size limit (Max 5MB)
+    2. Magic Bytes verification (JPEG, PNG, WEBP, GIF — NO SVG/PHP/HTML)
+    3. Pillow image verification & Decompression bomb protection (Max 4096x4096px)
+    4. Save with secure random UUID filename in UPLOAD_DIR
+    """
+    if not file_bytes or len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)")
+
+    # Magic Bytes Verification
+    ext = None
+    if file_bytes.startswith(b"\xff\xd8\xff"):
+        ext = ".jpg"
+    elif file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        ext = ".png"
+    elif file_bytes.startswith(b"RIFF") and b"WEBP" in file_bytes[:16]:
+        ext = ".webp"
+    elif file_bytes.startswith(b"GIF87a") or file_bytes.startswith(b"GIF89a"):
+        ext = ".gif"
+
+    if not ext:
+        raise HTTPException(status_code=400, detail="بصمة الملف غير صالحة. يُسمح فقط برفع صور JPG أو PNG أو WebP أو GIF")
+
+    # Pillow Integrity Check & Decompression Bomb Protection
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+        img.verify()
+        # Re-open after verify() as Pillow requires re-opening for size inspection
+        img_check = Image.open(io.BytesIO(file_bytes))
+        if img_check.width > 4096 or img_check.height > 4096:
+            raise HTTPException(status_code=400, detail="أبعاد الصورة كبيرة جداً (الحد الأقصى 4096×4096 بكسل)")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="الملف المرفوع محتوى صورة غير صالح أو تالف")
+
+    # Save to UPLOAD_DIR with random UUID name
+    filename = f"{prefix}_{uuid.uuid4().hex[:12]}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(file_bytes)
+
+    return f"/uploads/{filename}"
+
 
 app = FastAPI(
     title="Sheland Marketplace API",
@@ -1297,20 +1348,17 @@ def get_product_reviews(product_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/reviews/upload-photo")
-async def upload_review_photo(file: UploadFile = File(...)):
-    """Open endpoint for customers to upload a review photo (no login required)."""
-    # ponytail: validate image type before saving to prevent abuse
-    ext = os.path.splitext(file.filename)[1].lower() if file.filename else '.jpg'
-    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
-        raise HTTPException(status_code=400, detail="يسمح فقط برفع صور JPG أو PNG أو WebP")
+@limiter.limit("10/minute")
+async def upload_review_photo(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.require_current_user)
+):
+    """Authenticated endpoint for registered customers to upload a review photo with rate limiting & strict validation."""
     contents = await file.read()
-    if len(contents) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="حجم الصورة كبير جداً (الحد الأقصى 8 ميجابايت)")
-    filename = f"review_{uuid.uuid4().hex[:12]}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(contents)
-    return {"url": f"/uploads/{filename}"}
+    url = validate_and_save_image(contents, prefix="review")
+    return {"url": url}
+
 
 
 @app.get("/api/orders/check-purchased")
@@ -1573,24 +1621,20 @@ def export_sales_excel_report(
     )
 
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.post("/api/upload")
+@limiter.limit("20/minute")
 async def upload_image_file(
+    request: Request,
     file: UploadFile = File(...),
-    current_user: models.User = Depends(auth.require_roles(["seller"]))
+    current_user: models.User = Depends(auth.require_roles(["admin", "super_admin", "sales_manager", "seller"]))
 ):
-    # ponytail: Save uploaded image file directly into frontend/uploads
-    ext = os.path.splitext(file.filename)[1].lower() if file.filename else '.jpg'
-    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
-        ext = '.jpg'
-    filename = f"prod_{uuid.uuid4().hex[:10]}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    return {"url": f"/uploads/{filename}"}
+    """Secure endpoint for sellers & admins to upload product photos with rate limiting & strict validation."""
+    contents = await file.read()
+    url = validate_and_save_image(contents, prefix="prod")
+    return {"url": url}
+
 
 # --- Database Seeder ---
 @app.get("/api/seed")
