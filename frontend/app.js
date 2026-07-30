@@ -1559,6 +1559,10 @@ function openAccountModal() {
   const modal = document.getElementById('accountModal');
   if (!modal) return;
 
+  const hasSession = localStorage.getItem('sheland_jwt_token') || localStorage.getItem('sheland_user_phone') || localStorage.getItem('sheland_user_id');
+  const logoutBtn = document.getElementById('accLogoutBtn');
+  if (logoutBtn) logoutBtn.style.display = hasSession ? 'inline-block' : 'none';
+
   populateAccountProfileFields();
   switchAccountSubTab('orders');
   fetchAccountOrdersByPhone();
@@ -1570,6 +1574,32 @@ function closeAccountModal() {
   const modal = document.getElementById('accountModal');
   if (modal) modal.classList.remove('active');
 }
+
+async function performCustomerLogout() {
+  const token = localStorage.getItem('sheland_jwt_token');
+  if (token) {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+    } catch (err) {}
+  }
+
+  // Wipe all customer session data completely
+  localStorage.removeItem('sheland_jwt_token');
+  localStorage.removeItem('sheland_user_data');
+  localStorage.removeItem('sheland_user_name');
+  localStorage.removeItem('sheland_user_phone');
+  localStorage.removeItem('sheland_user_id');
+  localStorage.removeItem('sheland_user_address');
+  localStorage.removeItem('sheland_user_orders');
+
+  showToast("تم تسجيل الخروج ومسح بيانات الجلسة السابقة بنجاح! 🚪", 'info', '🔒');
+  closeAccountModal();
+  setTimeout(() => location.reload(), 600);
+}
+
 
 
 // Product Web Share API (Item 18)
