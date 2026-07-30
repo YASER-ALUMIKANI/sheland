@@ -579,6 +579,13 @@ function setReviewStar(n) {
 }
 
 async function pickReviewPhoto() {
+  const token = getAuthToken();
+  if (!token) {
+    showToast('🔒 يرجى تسجيل الدخول أولاً لإرفاق صورة التقييم.', 'warning', '🔐');
+    openAccountModal();
+    return;
+  }
+
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/jpeg,image/png,image/webp';
@@ -590,7 +597,7 @@ async function pickReviewPhoto() {
     const btn = document.getElementById('reviewPhotoBtn');
     if (btn) { btn.innerText = '⏳ جاري الرفع...'; btn.disabled = true; }
     try {
-      const res = await fetch(`${API_BASE.replace('/api','')+'/api'}/reviews/upload-photo`, { method: 'POST', body: fd });
+      const res = await authFetch(`${API_BASE.replace('/api','')+'/api'}/reviews/upload-photo`, { method: 'POST', body: fd });
       if (res.ok) {
         const data = await res.json();
         _reviewPhotoUrl = data.url;
@@ -598,6 +605,10 @@ async function pickReviewPhoto() {
         if (preview) { preview.src = _reviewPhotoUrl; preview.style.display = 'block'; }
         if (btn) { btn.innerText = '✅ تم رفع الصورة'; }
         showToast('تم رفع صورة المنتج بنجاح!', 'success', '📷');
+      } else if (res.status === 401) {
+        if (btn) { btn.innerText = '📷 أرفق صورة المنتج'; btn.disabled = false; }
+        showToast('🔒 يرجى تسجيل الدخول أولاً لإرفاق الصورة.', 'warning', '🔐');
+        openAccountModal();
       } else {
         if (btn) { btn.innerText = '📷 أرفق صورة المنتج'; btn.disabled = false; }
         showToast('فشل رفع الصورة، حاول مجدداً.', 'danger', '⚠️');

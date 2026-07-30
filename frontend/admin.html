@@ -2035,12 +2035,16 @@
       try {
         const res = await fetch(`${API_BASE}/upload`, {
           method: 'POST',
+          headers: getAuthHeaders(),
           body: formData
         });
         if (res.ok) {
           const data = await res.json();
           document.getElementById('pImgUrl').value = data.url;
           updateImagePreview(data.url);
+        } else if (res.status === 401) {
+          alert('🔒 يرجى تسجيل الدخول كمدير أولاً لرفع الصور.');
+          showAdminLoginModal();
         } else {
           alert('تعذر رفع الصورة، تحقق من صورة الجهاز والمحاولة مرة أخرى.');
         }
