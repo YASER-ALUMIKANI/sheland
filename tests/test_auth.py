@@ -60,13 +60,13 @@ def test_login_user_endpoint(client):
     assert token_data["user"]["name"] == "عميل اختبار"
 
 def test_get_me_endpoint(client):
-    # Register and get token
+    # Register customer and get token
     reg_payload = {
-        "name": "مدير النظام",
-        "email": "admin_test@sheland.com",
+        "name": "مستخدم عادي",
+        "email": "user_me_test@sheland.com",
         "phone": "0770001122",
-        "password": "admin_pass_789",
-        "role": "admin"
+        "password": "user_pass_789",
+        "role": "customer"
     }
     reg_res = client.post("/api/auth/register", json=reg_payload).json()
     token = reg_res["access_token"]
@@ -76,8 +76,9 @@ def test_get_me_endpoint(client):
     me_res = client.get("/api/auth/me", headers=headers)
     assert me_res.status_code == 200
     user_info = me_res.json()
-    assert user_info["email"] == "admin_test@sheland.com"
-    assert user_info["role"] == "admin"
+    assert user_info["email"] == "user_me_test@sheland.com"
+    assert user_info["role"] == "customer"
+
 
 def test_invalid_credentials_login(client):
     login_payload = {

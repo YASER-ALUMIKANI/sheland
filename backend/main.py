@@ -232,12 +232,35 @@ def get_iconmask512():
 
 
 # ==========================================================================
-# Authentication Endpoints
+# Authentication & User Management Endpoints
 # ==========================================================================
+SAFE_PUBLIC_ROLES = {"customer", "seller"}
+ADMIN_MANAGED_ROLES = {"admin", "super_admin", "sales_manager", "seller", "customer"}
+
 @app.post("/api/auth/register", response_model=schemas.Token, status_code=201)
-@limiter.limit("15/minute")
+@limiter.limit("30/minute")
 def register_user(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Register a new user (Customer, Seller, or Admin) with hashed password."""
+
+    """Public self-registration endpoint for Customers and Sellers only."""
+    requested_role = (user_in.role or "customer").lower().strip()
+    if requested_role in {"admin", "super_admin", "sales_manager"}:
+        # Log security audit event for role escalation attempt
+        audit_entry = models.AuditLog(
+            action="role_escalation_attempt",
+            performed_by=None,
+            new_value=requested_role,
+            ip_address=request.client.host if (request and request.client) else "unknown",
+            details=f"Blocked public registration attempt with admin role '{requested_role}' for email '{user_in.email}'"
+        )
+        db.add(audit_entry)
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail="التسجيل الذاتي بالأدوار الإدارية غير مسموح به. يرجى التواصل مع إدارة المتجر."
+        )
+
+    final_role = requested_role if requested_role in SAFE_PUBLIC_ROLES else "customer"
+
     existing_user = db.query(models.User).filter(
         (models.User.email == user_in.email) | (models.User.phone == user_in.phone)
     ).first()
@@ -249,7 +272,7 @@ def register_user(request: Request, user_in: schemas.UserCreate, db: Session = D
         email=user_in.email,
         phone=user_in.phone,
         password_hash=auth.hash_password(user_in.password),
-        role=user_in.role or "customer"
+        role=final_role
     )
     db.add(new_user)
     db.commit()
@@ -262,6 +285,109 @@ def register_user(request: Request, user_in: schemas.UserCreate, db: Session = D
 
     token = auth.create_access_token({"sub": str(new_user.id), "role": new_user.role})
     return {"access_token": token, "token_type": "bearer", "user": new_user}
+
+# --- Protected Admin User & Role Management Endpoints ---
+@app.post("/api/admin/users", response_model=schemas.UserResponse, status_code=201, include_in_schema=False)
+def admin_create_user(
+    request: Request,
+    user_in: schemas.AdminUserCreate,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(auth.require_roles(["admin", "super_admin"]))
+):
+    """Admin-only endpoint to create new users with any role (Admin, Sales Manager, Seller, Customer)."""
+    target_role = user_in.role.lower().strip()
+    if target_role not in ADMIN_MANAGED_ROLES:
+        raise HTTPException(status_code=400, detail="الدور المحدد غير صالح")
+
+    if target_role == "super_admin" and current_admin.role != "super_admin":
+        raise HTTPException(status_code=403, detail="فقط المدير الفائق (Super Admin) يمكنه إنشاء حسابات Super Admin")
+
+    existing_user = db.query(models.User).filter(
+        (models.User.email == user_in.email) | (models.User.phone == user_in.phone)
+    ).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="البريد الإلكتروني أو رقم الهاتف مسجل بالفعل")
+
+    new_user = models.User(
+        name=user_in.name,
+        email=user_in.email,
+        phone=user_in.phone,
+        password_hash=auth.hash_password(user_in.password),
+        role=target_role
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    if target_role == "seller":
+        seller = models.Seller(user_id=new_user.id, store_name=f"متجر {new_user.name}")
+        db.add(seller)
+        db.commit()
+
+    # Log audit trail
+    audit = models.AuditLog(
+        action="admin_create_user",
+        target_user_id=new_user.id,
+        performed_by=current_admin.id,
+        new_value=target_role,
+        ip_address=request.client.host if (request and request.client) else "unknown",
+        details=f"Admin '{current_admin.email}' created user '{new_user.email}' with role '{target_role}'"
+    )
+    db.add(audit)
+    db.commit()
+
+    return new_user
+
+@app.put("/api/admin/users/{user_id}/role", response_model=schemas.UserResponse, include_in_schema=False)
+def admin_update_user_role(
+    user_id: int,
+    role_in: schemas.UserRoleUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(auth.require_roles(["admin", "super_admin"]))
+):
+    """Admin-only endpoint to promote or update a user's role with full audit logging."""
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="المستخدم غير موجود")
+
+    new_role = role_in.role.lower().strip()
+    if new_role not in ADMIN_MANAGED_ROLES:
+        raise HTTPException(status_code=400, detail="الدور المحدد غير صالح")
+
+    if (new_role == "super_admin" or target_user.role == "super_admin") and current_admin.role != "super_admin":
+        raise HTTPException(status_code=403, detail="فقط المدير الفائق (Super Admin) يمكنه تعديل أدوار Super Admin")
+
+    old_role = target_user.role
+    target_user.role = new_role
+    db.commit()
+    db.refresh(target_user)
+
+    # Audit log
+    audit = models.AuditLog(
+        action="role_change",
+        target_user_id=target_user.id,
+        performed_by=current_admin.id,
+        old_value=old_role,
+        new_value=new_role,
+        ip_address=request.client.host if (request and request.client) else "unknown",
+        details=f"Admin '{current_admin.email}' changed user '{target_user.email}' role from '{old_role}' to '{new_role}'"
+    )
+    db.add(audit)
+    db.commit()
+
+    return target_user
+
+@app.get("/api/admin/audit-logs", include_in_schema=False)
+def get_audit_logs(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(auth.require_roles(["admin", "super_admin"]))
+):
+    """Retrieve security audit trail logs."""
+    logs = db.query(models.AuditLog).order_by(models.AuditLog.id.desc()).limit(limit).all()
+    return logs
+
 
 @app.post("/api/auth/login", response_model=schemas.Token)
 @limiter.limit("15/minute")

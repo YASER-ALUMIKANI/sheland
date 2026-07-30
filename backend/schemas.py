@@ -6,15 +6,40 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+from pydantic import BaseModel, Field, field_validator
+
 # ==========================================================================
 # Auth Schemas
 # ==========================================================================
+ADMIN_ONLY_ROLES = {"admin", "super_admin", "sales_manager"}
+SAFE_PUBLIC_ROLES = {"customer", "seller"}
+
 class UserCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: str = Field(..., min_length=5, max_length=150)
     password: str = Field(..., min_length=6, max_length=100)
     phone: Optional[str] = None
-    role: Optional[str] = "customer"  # customer, seller, admin
+    role: Optional[str] = "customer"
+
+    @field_validator('role')
+    @classmethod
+    def validate_public_registration_role(cls, v: Optional[str]) -> str:
+        role_clean = (v or "customer").lower().strip()
+        if role_clean in ADMIN_ONLY_ROLES:
+            raise ValueError("التسجيل الذاتي بالأدوار الإدارية غير مسموح به. يرجى التواصل مع إدراة المتجر.")
+        if role_clean not in SAFE_PUBLIC_ROLES:
+            return "customer"
+        return role_clean
+
+class AdminUserCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., min_length=5, max_length=150)
+    password: str = Field(..., min_length=6, max_length=100)
+    phone: Optional[str] = None
+    role: str = Field("admin", description="customer, seller, sales_manager, admin")
+
+class UserRoleUpdate(BaseModel):
+    role: str = Field(..., description="customer, seller, sales_manager, admin")
 
 class UserLogin(BaseModel):
     email_or_phone: str
@@ -35,6 +60,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
 
 
 class CategoryBase(BaseModel):

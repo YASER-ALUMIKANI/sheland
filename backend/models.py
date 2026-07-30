@@ -197,3 +197,18 @@ class PaymentMethod(Base):
     is_active = Column(Boolean, default=True)
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, nullable=False)  # role_change, role_escalation_attempt, admin_create_user
+    target_user_id = Column(Integer, nullable=True)
+    performed_by = Column(Integer, nullable=True)
+    old_value = Column(String, nullable=True)
+    new_value = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+
