@@ -1336,7 +1336,8 @@
         order.status = newStatus;
         try {
           await fetch(`${API_BASE}/orders/${orderId}/status?status=${encodeURIComponent(newStatus)}`, {
-            method: "PUT"
+            method: "PUT",
+            headers: getAuthHeaders()
           });
         } catch (err) {
           console.log("Error updating backend order status:", err);
@@ -1357,7 +1358,7 @@
 
     async function loadAdminOrders() {
       try {
-        const res = await fetch(`${API_BASE}/orders`);
+        const res = await fetch(`${API_BASE}/orders`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           adminOrders = (Array.isArray(data) && data.length > 0) ? data : FALLBACK_ADMIN_ORDERS;
