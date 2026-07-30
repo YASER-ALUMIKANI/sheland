@@ -1493,18 +1493,55 @@ async function fetchAccountOrdersByPhone() {
   }
 }
 
-function openAccountModal() {
-  const modal = document.getElementById('accountModal');
-  if (!modal) return;
+async function populateAccountProfileFields() {
+  let savedName = localStorage.getItem('sheland_user_name') || '';
+  let savedPhone = localStorage.getItem('sheland_user_phone') || '';
+  let savedAddress = localStorage.getItem('sheland_user_address') || '';
 
-  const savedName = localStorage.getItem('sheland_user_name') || '';
-  const savedPhone = localStorage.getItem('sheland_user_phone') || '';
-  const savedAddress = localStorage.getItem('sheland_user_address') || '';
+  const userDataRaw = localStorage.getItem('sheland_user_data');
+  if (userDataRaw) {
+    try {
+      const uData = JSON.parse(userDataRaw);
+      if (uData.name) savedName = uData.name;
+      if (uData.phone) savedPhone = uData.phone;
+    } catch (e) {}
+  }
+
+  const token = localStorage.getItem('sheland_jwt_token');
+  if (token) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const u = await res.json();
+        if (u.name) {
+          savedName = u.name;
+          localStorage.setItem('sheland_user_name', u.name);
+        }
+        if (u.phone) {
+          savedPhone = u.phone;
+          localStorage.setItem('sheland_user_phone', u.phone);
+        }
+        if (u.id) {
+          localStorage.setItem('sheland_user_id', u.id);
+        }
+      }
+    } catch (err) {
+      console.log("Could not refresh user profile from server", err);
+    }
+  }
 
   if (document.getElementById('accCustName')) document.getElementById('accCustName').value = savedName;
   if (document.getElementById('accCustPhone')) document.getElementById('accCustPhone').value = savedPhone;
   if (document.getElementById('accCustAddress')) document.getElementById('accCustAddress').value = savedAddress;
+}
 
+function openAccountModal() {
+  const modal = document.getElementById('accountModal');
+  if (!modal) return;
+
+  populateAccountProfileFields();
   switchAccountSubTab('orders');
   fetchAccountOrdersByPhone();
 
@@ -1515,6 +1552,7 @@ function closeAccountModal() {
   const modal = document.getElementById('accountModal');
   if (modal) modal.classList.remove('active');
 }
+
 
 // Product Web Share API (Item 18)
 function shareProduct() {
