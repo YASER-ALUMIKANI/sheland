@@ -8,7 +8,10 @@ import os
 import shutil
 import io
 import csv
+import re
+import logging
 from datetime import datetime, timedelta
+
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,9 +42,12 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["300/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Security Middleware: Strict Security Headers
+# Security Middleware: Strict Security Headers & CORS Logging
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if origin and origin not in ALLOWED_ORIGINS:
+        logging.warning(f"🚨 CORS violation attempt blocked from origin: {origin}")
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
@@ -53,16 +59,40 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-# Strict CORS headers configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000,https://sheland.com,https://sheland.onrender.com").split(",")
+# Strict CORS Configuration with Validation, Fail-Closed, Subdomains & Logging
+def validate_origin(origin: str) -> bool:
+    """Validates origin URL format: scheme://domain[:port]"""
+    pattern = r'^https?://[a-zA-Z0-9._-]+(:[0-9]+)?$'
+    return bool(re.match(pattern, origin.strip()))
+
+DEFAULT_SAFE_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+    "https://sheland.com",
+    "https://www.sheland.com",
+    "https://sheland.onrender.com"
+]
+
+raw_origins = os.getenv("ALLOWED_ORIGINS", "")
+if raw_origins:
+    parsed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+else:
+    parsed_origins = DEFAULT_SAFE_ORIGINS
+
+# Fail-Closed Validation — NO wildcards allowed
+ALLOWED_ORIGINS = [o for o in parsed_origins if validate_origin(o)]
+if not ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS = DEFAULT_SAFE_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if os.getenv("ENVIRONMENT") == "production" else ["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
 
 def ensure_default_users(db: Session):
     """Ensures Admin & Seller default accounts exist with valid bcrypt password hashes."""
