@@ -949,15 +949,27 @@ def delete_product(
 
 # --- Orders Endpoints ---
 @app.get("/api/orders", response_model=List[schemas.OrderResponse])
-def get_orders(phone: Optional[str] = None, db: Session = Depends(get_db)):
+def get_orders(phone: Optional[str] = None, user_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(models.Order)
-    if phone:
+    if user_id:
+        query = query.filter(models.Order.user_id == user_id)
+    elif phone:
         clean_phone = phone.strip().replace('+', '')
         query = query.filter(
             (models.Order.phone.like(f"%{clean_phone}%")) |
             (models.Order.shipping_address.like(f"%{clean_phone}%"))
         )
     return query.order_by(models.Order.id.desc()).all()
+
+
+@app.get("/api/orders/my", response_model=List[schemas.OrderResponse])
+def get_my_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_current_user)
+):
+    """Returns all orders belonging to the currently authenticated user by unique user_id."""
+    return db.query(models.Order).filter(models.Order.user_id == current_user.id).order_by(models.Order.id.desc()).all()
+
 
 
 @app.put("/api/orders/{order_id}/status")

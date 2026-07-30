@@ -1141,8 +1141,11 @@ async function submitOrderProcess() {
     return;
   }
 
+  const savedUserId = localStorage.getItem('sheland_user_id');
+  const currentUserId = savedUserId ? parseInt(savedUserId) : null;
+
   const orderPayload = {
-    user_id: 1,
+    user_id: currentUserId,
     customer_name: name,
     phone: phone,
     shipping_address: `${name} (${phone}) - ${address}`,
@@ -1169,12 +1172,21 @@ async function submitOrderProcess() {
       const num = orderData.order_number;
       document.getElementById('placedOrderNum').innerText = num;
       
-      // Save order to customer account history
+      // Save order to customer account history linked by unique user_id & phone
       const prevOrders = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
       const grossTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       const netTotal = orderData.total_amount ?? Math.max(0, grossTotal - (activeDiscountAmount || 0));
-      prevOrders.unshift({ number: num, date: new Date().toISOString(), status: 'قيد المعالجة', total: netTotal, discount: activeDiscountAmount });
+      prevOrders.unshift({
+        number: num,
+        user_id: currentUserId,
+        phone: phone,
+        date: new Date().toISOString(),
+        status: 'قيد المعالجة',
+        total: netTotal,
+        discount: activeDiscountAmount
+      });
       localStorage.setItem('sheland_user_orders', JSON.stringify(prevOrders));
+
 
     } else {
 
@@ -1324,6 +1336,7 @@ async function handleCustomerLogin(e) {
       localStorage.setItem('sheland_jwt_token', data.access_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
+      if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
       if (data.user.phone) localStorage.setItem('sheland_user_phone', data.user.phone);
 
       showToast(`مرحباً بك مجدداً ${data.user.name} 👋`, 'success', '🔑');
@@ -1360,7 +1373,9 @@ async function handleCustomerRegister(e) {
       localStorage.setItem('sheland_jwt_token', data.access_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
+      if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
       localStorage.setItem('sheland_user_phone', data.user.phone);
+
 
       showToast(`🎉 أهلاً بك عضو جديد منصتنا ${data.user.name}!`, 'success', '✨');
       switchAccountSubTab('orders');
@@ -1409,30 +1424,45 @@ function saveCustomerProfileSettings(e) {
 
 async function fetchAccountOrdersByPhone() {
   const phone = localStorage.getItem('sheland_user_phone') || '';
+  const userId = localStorage.getItem('sheland_user_id') || '';
+  const token = localStorage.getItem('sheland_jwt_token') || '';
   const container = document.getElementById('customerAccountOrdersList');
   if (!container) return;
 
   if (document.getElementById('accCurrentPhoneDisplay')) {
-    document.getElementById('accCurrentPhoneDisplay').innerText = phone || 'غير محدد (ادخل بياناتك من تبويب البيانات)';
+    document.getElementById('accCurrentPhoneDisplay').innerText = phone || (userId ? `المعرف: #${userId}` : 'غير محدد (ادخل بياناتك من تبويب البيانات)');
   }
 
   const localOrders = JSON.parse(localStorage.getItem('sheland_user_orders') || '[]');
   let apiOrders = [];
 
-  if (phone) {
-    try {
+  try {
+    if (token) {
+      const res = await fetch(`${API_BASE}/orders/my`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) apiOrders = await res.json();
+    } else if (userId) {
+      const res = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}`);
+      if (res.ok) apiOrders = await res.json();
+    } else if (phone) {
       const res = await fetch(`${API_BASE}/orders?phone=${encodeURIComponent(phone)}`);
-      if (res.ok) {
-        apiOrders = await res.json();
-      }
-    } catch (err) {
-      console.log("Could not fetch remote orders by phone", err);
+      if (res.ok) apiOrders = await res.json();
     }
+  } catch (err) {
+    console.log("Could not fetch remote orders", err);
   }
+
+  // Filter local orders strictly by matching user_id or phone
+  const filteredLocal = localOrders.filter(o => {
+    if (userId && o.user_id) return String(o.user_id) === String(userId);
+    if (phone && o.phone) return String(o.phone).replace(/\D/g, '') === String(phone).replace(/\D/g, '');
+    return false;
+  });
 
   // Combine & deduplicate API and local orders
   const map = new Map();
-  localOrders.forEach(o => map.set(o.number, { number: o.number, date: o.date, status: o.status || 'قيد المعالجة', total: o.total }));
+  filteredLocal.forEach(o => map.set(o.number, { number: o.number, date: o.date, status: o.status || 'قيد المعالجة', total: o.total }));
   apiOrders.forEach(o => map.set(o.order_number, { number: o.order_number, date: o.created_at || new Date().toISOString(), status: o.status || 'قيد المعالجة', total: o.total_amount }));
 
   const combinedOrders = Array.from(map.values());
@@ -1441,10 +1471,11 @@ async function fetchAccountOrdersByPhone() {
     container.innerHTML = `
       <div style="text-align:center; padding: 25px; color:#888; font-size:13px; background: white; border-radius: 8px; border: 1px solid var(--border);">
         <div style="font-size:32px; margin-bottom:6px;">📦</div>
-        ${phone ? `لا توجد طلبات مسجلة برقم الجوال (<b>${escapeHTML(phone)}</b>) حتى الآن.` : 'لم يتم تسجيل رقم جوال بعد. اضغط على تبويب "بياناتي ورقم الجوال" لحفظ حسابك.'}
+        ${phone || userId ? `لا توجد طلبات مسجلة للحساب (<b>${escapeHTML(phone || ('#' + userId))}</b>) حتى الآن.` : 'لم يتم تسجيل بيانات الحساب بعد. اضغط على تبويب "بياناتي ورقم الجوال" لحفظ حسابك.'}
       </div>
     `;
   } else {
+
     container.innerHTML = combinedOrders.map(o => `
       <div style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: white;">
         <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 13px;">
