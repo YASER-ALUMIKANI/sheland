@@ -231,46 +231,35 @@ def ensure_default_users(db: Session):
 
 @app.on_event("startup")
 def auto_seed_on_startup():
-    from .database import SessionLocal, engine
-    # ponytail: Lightweight SQLite schema migration for parcel detail columns
+    from .database import SessionLocal, engine, safe_add_column
+    # ponytail: Safe schema migration using inspection & identifier regex checks
     try:
-        with engine.connect() as conn:
-            from sqlalchemy import text
-            for col, default_val in [
-                ("parcel_count", "'1 من 1'"),
-                ("weight", "'0.85 كجم'"),
-                ("dimensions", "'25 × 15 × 10 سم'"),
-            ]:
-                try:
-                    conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} VARCHAR DEFAULT {default_val}"))
-                    conn.commit()
-                except Exception:
-                    pass
-            # Review photo + verified purchase migration
-            for col, typedef in [
-                ("image_url", "VARCHAR"),
-                ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
-                ("order_number", "VARCHAR"),
-            ]:
-                try:
-                    conn.execute(text(f"ALTER TABLE reviews ADD COLUMN {col} {typedef}"))
-                    conn.commit()
-                except Exception:
-                    pass
+        # Parcel detail columns for orders
+        for col, default_val in [
+            ("parcel_count", "'1 من 1'"),
+            ("weight", "'0.85 كجم'"),
+            ("dimensions", "'25 × 15 × 10 سم'"),
+        ]:
+            safe_add_column(engine, "orders", col, f"VARCHAR DEFAULT {default_val}")
 
-            # Coupon code + discount amount migration for orders table
-            for col, typedef in [
-                ("coupon_code", "VARCHAR"),
-                ("discount_amount", "FLOAT DEFAULT 0.0"),
-            ]:
-                try:
-                    conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {typedef}"))
-                    conn.commit()
-                except Exception:
-                    pass
+        # Review photo + verified purchase migration
+        for col, typedef in [
+            ("image_url", "VARCHAR"),
+            ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
+            ("order_number", "VARCHAR"),
+        ]:
+            safe_add_column(engine, "reviews", col, typedef)
+
+        # Coupon code + discount amount migration for orders table
+        for col, typedef in [
+            ("coupon_code", "VARCHAR"),
+            ("discount_amount", "FLOAT DEFAULT 0.0"),
+        ]:
+            safe_add_column(engine, "orders", col, typedef)
 
     except Exception as e:
-        print("Migration warning:", e)
+        logging.warning(f"Migration startup warning: {e}")
+
 
     db = SessionLocal()
     try:
