@@ -189,7 +189,7 @@ app.add_middleware(
 
 
 def ensure_default_users(db: Session):
-    """Ensures Admin & Seller default accounts exist with valid bcrypt password hashes."""
+    """Ensures Admin & Seller default accounts exist with valid bcrypt password hashes without overwriting existing passwords."""
     admin = db.query(models.User).filter(models.User.email == "admin@sheland.com").first()
     if not admin:
         admin = models.User(
@@ -200,10 +200,6 @@ def ensure_default_users(db: Session):
             role="admin"
         )
         db.add(admin)
-        db.commit()
-    else:
-        admin.password_hash = auth.hash_password("admin123")
-        admin.role = "admin"
         db.commit()
 
     seller_user = db.query(models.User).filter(models.User.email == "seller@sheland.com").first()
@@ -224,10 +220,6 @@ def ensure_default_users(db: Session):
             seller = models.Seller(user_id=seller_user.id, store_name="Sheland Official Store", rating=4.8)
             db.add(seller)
             db.commit()
-    else:
-        seller_user.password_hash = auth.hash_password("seller123")
-        seller_user.role = "seller"
-        db.commit()
 
 @app.on_event("startup")
 def auto_seed_on_startup():
@@ -266,7 +258,7 @@ def auto_seed_on_startup():
         ensure_default_users(db)
         deduplicate_all_products(db)
         if db.query(models.Product).count() == 0:
-            seed_database(db)
+            _seed_database_internal(db)
     finally:
         db.close()
 
@@ -1693,9 +1685,8 @@ async def upload_image_file(
     return {"url": url}
 
 
-# --- Database Seeder ---
-@app.get("/api/seed")
-def seed_database(db: Session = Depends(get_db)):
+# --- Internal Database Seeder ---
+def _seed_database_internal(db: Session):
     ensure_default_users(db)
     # Check if categories exist
     if db.query(models.Category).first():
