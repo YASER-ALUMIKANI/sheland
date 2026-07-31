@@ -649,9 +649,21 @@ async function verifyOrderForReview() {
 async function submitProductReview() {
   if (!currentModalProduct) return;
 
+  const token = getAuthToken();
+  if (!token) {
+    showToast('يجب تسجيل الدخول أولاً لإضافة تقييم.', 'danger', '⚠️');
+    if (typeof openAuthModal === 'function') openAuthModal();
+    return;
+  }
+
   const comment = (document.getElementById('revComment')?.value || '').trim();
   const author  = (document.getElementById('revAuthor')?.value || '').trim();
-  const orderNum = (document.getElementById('revOrderNumber')?.value || '').trim().toUpperCase() || null;
+  const orderNum = (document.getElementById('revOrderNumber')?.value || '').trim().toUpperCase();
+
+  if (!orderNum) {
+    showToast('رقم الطلب مطلوب للتحقق من الشراء.', 'danger', '⚠️');
+    return;
+  }
 
   if (!comment) {
     showToast('يرجى كتابة انطباعك عن المنتج قبل النشر.', 'danger', '⚠️');
@@ -662,7 +674,7 @@ async function submitProductReview() {
     author_name: author || 'عميل شي لاند',
     rating: _selectedStars,
     comment,
-    order_number: orderNum || null,
+    order_number: orderNum,
     image_url: _reviewPhotoUrl || null
   };
 
@@ -683,8 +695,7 @@ async function submitProductReview() {
       showToast(err.detail || 'فشل النشر، حاول مجدداً.', 'danger', '⚠️');
     }
   } catch {
-    showToast('تم تسجيل تقييمك بنجاح!', 'success');
-    toggleReviewForm();
+    showToast('تعذّر التواصل مع الخادم، حاول لاحقاً.', 'danger', '⚠️');
   }
 }
 

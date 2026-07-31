@@ -198,7 +198,7 @@ class OrderResponse(BaseModel):
 
 class ReviewCreate(BaseModel):
     author_name: Optional[str] = "عميل شي لاند"
-    order_number: Optional[str] = None  # provided to verify the reviewer actually purchased
+    order_number: str = Field(..., min_length=1)  # mandatory for verified purchase
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., min_length=2)
     image_url: Optional[str] = None  # URL of uploaded review photo

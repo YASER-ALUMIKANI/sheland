@@ -1459,25 +1459,41 @@ def check_order_purchased(
 
 
 @app.post("/api/products/{product_id}/reviews", response_model=schemas.ReviewResponse)
-def create_product_review(product_id: int, review_in: schemas.ReviewCreate, db: Session = Depends(get_db)):
+def create_product_review(
+    product_id: int,
+    review_in: schemas.ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_current_user)
+):
     prod = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not prod:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # ponytail: verify purchase if order_number provided
-    is_verified = False
-    if review_in.order_number:
-        order = db.query(models.Order).filter(
-            models.Order.order_number == review_in.order_number.upper()
-        ).first()
-        if order and any(item.product_id == product_id for item in order.items):
-            is_verified = True
+    if not review_in.order_number or not review_in.order_number.strip():
+        raise HTTPException(status_code=400, detail="رقم الطلب مطلوب للتحقق من الشراء")
+
+    order_num_upper = review_in.order_number.strip().upper()
+    order = db.query(models.Order).filter(
+        models.Order.order_number == order_num_upper,
+        models.Order.user_id == current_user.id
+    ).first()
+
+    if not order:
+        raise HTTPException(status_code=404, detail="الطلب غير موجود أو لا يخص حسابك")
+
+    has_product = any(item.product_id == product_id for item in order.items)
+    if not has_product:
+        raise HTTPException(status_code=400, detail="هذا الطلب لا يحتوي على هذا المنتج")
+
+    if order.status != "delivered":
+        raise HTTPException(status_code=400, detail="يمكنك التقييم فقط بعد استلام الطلب وتغيير حالته إلى مكتمل")
 
     db_review = models.Review(
         product_id=product_id,
-        author_name=review_in.author_name or "عميل شي لاند",
-        order_number=review_in.order_number,
-        is_verified_purchase=is_verified,
+        user_id=current_user.id,
+        author_name=current_user.name or review_in.author_name or "عميل شي لاند",
+        order_number=order_num_upper,
+        is_verified_purchase=True,
         rating=review_in.rating,
         comment=review_in.comment,
         image_url=review_in.image_url

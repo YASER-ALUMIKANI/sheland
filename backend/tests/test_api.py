@@ -84,15 +84,15 @@ def test_validate_coupon():
 def test_product_review():
     review_payload = {
         "author_name": "مختبر النظام",
+        "order_number": "ORD-TEST-001",
         "rating": 5,
         "comment": "منتج ممتاز جداً وتوصيل سريع"
     }
+    # Unauthenticated review creation must be rejected (401)
     res = client.post("/api/products/1/reviews", json=review_payload)
-    assert res.status_code == 200
-    rev_data = res.json()
-    assert rev_data["rating"] == 5
+    assert res.status_code == 401
 
-    # Get reviews
+    # Public GET reviews endpoint remains accessible
     get_res = client.get("/api/products/1/reviews")
     assert get_res.status_code == 200
-    assert len(get_res.json()) > 0
+    assert isinstance(get_res.json(), list)
