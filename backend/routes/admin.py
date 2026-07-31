@@ -19,6 +19,17 @@ logger = logging.getLogger("sheland.api")
 router = APIRouter()
 
 
+@router.get("/api/admin/users", include_in_schema=False)
+def get_all_users(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(auth.require_roles(["admin", "super_admin"]))
+):
+    """Admin-only endpoint to list all users."""
+    users = db.query(models.User).order_by(models.User.id.desc()).limit(limit).all()
+    return users
+
+
 @router.post("/api/admin/users", response_model=schemas.UserResponse, status_code=201, include_in_schema=False)
 def admin_create_user(
     request: Request,

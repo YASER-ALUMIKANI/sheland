@@ -28,6 +28,16 @@ def read_admin():
     return {"message": "Admin dashboard page not found"}
 
 
+@router.get("/admin/styles.css")
+def get_admin_css():
+    return FileResponse(os.path.join(FRONTEND_DIR, "admin", "styles.css"))
+
+
+@router.get("/admin/app.js")
+def get_admin_js():
+    return FileResponse(os.path.join(FRONTEND_DIR, "admin", "app.js"))
+
+
 @router.get("/vendor")
 def read_vendor():
     vendor_path = os.path.join(FRONTEND_DIR, "vendor.html")
