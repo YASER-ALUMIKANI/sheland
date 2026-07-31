@@ -20,10 +20,12 @@ import logging
 logger = logging.getLogger("sheland.auth")
 
 # Known weak/predictable fallback keys to reject for production safety
+# ponytail: Reject historical leaked key
 WEAK_SECRETS = {
     "sheland_secret_jwt_key_super_secure_2026",
     "sheland-secure-jwt-secret-key-2026-cityland",
     "change_this_to_a_random_secure_secret_key",
+    "c3f19e48710ab52d96c4a8f3e271b05a7d91e84239f60e1d8a3b5c7e9f0a2b4c",
     "secret",
     "secretkey",
     "123456",

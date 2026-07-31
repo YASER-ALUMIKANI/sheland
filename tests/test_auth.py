@@ -118,3 +118,8 @@ def test_token_revocation_and_logout(client):
     me_res = client.get("/api/auth/me", headers=headers)
     assert me_res.status_code == 401
 
+def test_historical_leaked_secret_is_in_weak_secrets():
+    leaked_key = "c3f19e48710ab52d96c4a8f3e271b05a7d91e84239f60e1d8a3b5c7e9f0a2b4c"
+    assert leaked_key in auth.WEAK_SECRETS
+
+
