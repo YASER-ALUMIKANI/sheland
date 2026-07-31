@@ -1,0 +1,47 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Environment files
+.env
+.env.example
+
+# Database files
+*.db
+*.sqlite3
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Docker files
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+FUTURE_IMPROVEMENTS.md
+
+# Test files
+tests/
+test_upload_dummy.png
+backend/tests/
+backend/test_analytics.py
+
+# Deployment configs
+Procfile
+render.yaml
+
+# Agent configs
+.agents/
+.agent-context.md

@@ -18,6 +18,14 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY . .
 
+# Create non-root user and set permissions
+RUN useradd -r -s /bin/false appuser && \
+    mkdir -p /app/frontend/uploads && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
