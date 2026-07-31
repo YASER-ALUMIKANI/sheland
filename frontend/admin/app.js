@@ -74,7 +74,8 @@ function showToast(message, type = 'success', icon = '✔️') {
   if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; container.className = 'toast-container'; document.body.appendChild(container); }
   const toast = document.createElement('div');
   toast.className = `toast-item ${type}`;
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  const safeMsg = String(message || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  toast.innerHTML = `<span>${icon}</span> <span>${safeMsg}</span>`;
   container.appendChild(toast);
   setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3200);
 }
@@ -667,10 +668,10 @@ function clearAuthToken() {
 
         return `
           <tr>
-            <td><img src="${p.image_url}" class="prod-thumb" alt="${p.title_ar}"></td>
+            <td><img src="${escapeAdminHTML(p.image_url)}" class="prod-thumb" alt="${escapeAdminHTML(p.title_ar)}"></td>
             <td>
-              <div style="font-weight:700;">${p.title_ar}</div>
-              <div style="font-size:11px; color:#777;">${p.title_en}</div>
+              <div style="font-weight:700;">${escapeAdminHTML(p.title_ar)}</div>
+              <div style="font-size:11px; color:#777;">${escapeAdminHTML(p.title_en)}</div>
             </td>
             <td><span style="background:var(--accent); color:var(--primary-dark); font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px;">${categoryNames[p.category_id] || 'عام'}</span></td>
             <td style="font-weight:800; color:var(--primary-dark);">${p.price} ر.ي</td>
@@ -970,7 +971,7 @@ function clearAuthToken() {
         return `
           <tr>
             <td style="text-align: center; font-weight: 700;">${idx + 1}</td>
-            <td style="font-weight: 700; color: #1E1B2E;">${titleText}</td>
+            <td style="font-weight: 700; color: #1E1B2E;">${escapeAdminHTML(titleText)}</td>
             <td style="text-align: center; font-weight: 800;">${q}</td>
             <td style="font-weight: 700;">${p} ر.ي</td>
             <td style="font-weight: 900; color: #8B2C7C;">${subtotal} ر.ي</td>
@@ -1011,7 +1012,7 @@ function clearAuthToken() {
               </div>
               <div style="text-align: left;">
                 <div class="inv-title">فاتورة مبيعات رسمية</div>
-                <div style="font-size: 13px; color: #666;">رقم الفاتورة: <strong>${orderNum}</strong></div>
+                <div style="font-size: 13px; color: #666;">رقم الفاتورة: <strong>${escapeAdminHTML(orderNum)}</strong></div>
                 <div style="font-size: 12px; color: #888;">التاريخ: ${new Date().toLocaleDateString('ar-SA')}</div>
               </div>
             </div>
@@ -1019,15 +1020,15 @@ function clearAuthToken() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; background: #F8FAFC; padding: 16px; border-radius: 8px;">
               <div>
                 <h4 style="margin: 0 0 8px 0; color: #8B2C7C;">بيانات العميل:</h4>
-                <div><strong>الاسم:</strong> ${customerName}</div>
-                <div><strong>الهاتف:</strong> +${phone}</div>
-                <div><strong>عنوان الشحن:</strong> ${fullAddr}</div>
+                <div><strong>الاسم:</strong> ${escapeAdminHTML(customerName)}</div>
+                <div><strong>الهاتف:</strong> +${escapeAdminHTML(phone)}</div>
+                <div><strong>عنوان الشحن:</strong> ${escapeAdminHTML(fullAddr)}</div>
               </div>
               <div>
                 <h4 style="margin: 0 0 8px 0; color: #8B2C7C;">تفاصيل الدفع والشحن:</h4>
                 <div><strong>طريقة الدفع:</strong> الدفع عند الاستلام (COD)</div>
                 <div><strong>شركة الشحن:</strong> شي لاند اكسبرس (Sheland Express)</div>
-                <div><strong>حالة الطلب:</strong> ${order.status || 'مكتمل'}</div>
+                <div><strong>حالة الطلب:</strong> ${escapeAdminHTML(order.status || 'مكتمل')}</div>
               </div>
             </div>
 
@@ -1205,7 +1206,7 @@ function clearAuthToken() {
               </div>
               <div class="meta-item">
                 <span class="meta-label">رقم التتبع:</span>
-                <span class="meta-val">${orderNum}</span>
+                <span class="meta-val">${escapeAdminHTML(orderNum)}</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">نوع الخدمة:</span>
@@ -1233,13 +1234,13 @@ function clearAuthToken() {
               <!-- المستلم SHIP TO -->
               <div class="party-card to-card">
                 <h3 class="party-title">المستلم — SHIP TO</h3>
-                <div class="field-row"><span class="field-key">اسم المستلم:</span><span class="field-value">${customerName}</span></div>
+                <div class="field-row"><span class="field-key">اسم المستلم:</span><span class="field-value">${escapeAdminHTML(customerName)}</span></div>
                 <div class="field-row"><span class="field-key">اسم الشركة:</span><span class="field-value">— (شخصي)</span></div>
-                <div class="field-row"><span class="field-key">العنوان:</span><span class="field-value">${fullAddr}</span></div>
-                <div class="field-row"><span class="field-key">المدينة/المنطقة:</span><span class="field-value">${cityName}</span></div>
+                <div class="field-row"><span class="field-key">العنوان:</span><span class="field-value">${escapeAdminHTML(fullAddr)}</span></div>
+                <div class="field-row"><span class="field-key">المدينة/المنطقة:</span><span class="field-value">${escapeAdminHTML(cityName)}</span></div>
                 <div class="field-row"><span class="field-key">الدولة:</span><span class="field-value">اليمن (Yemen)</span></div>
                 <div class="field-row"><span class="field-key">الرمز البريدي:</span><span class="field-value">967</span></div>
-                <div class="field-row"><span class="field-key">الهاتف:</span><span class="field-value">+${phone}</span></div>
+                <div class="field-row"><span class="field-key">الهاتف:</span><span class="field-value">+${escapeAdminHTML(phone)}</span></div>
               </div>
             </div>
 
