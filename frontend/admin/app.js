@@ -1,5 +1,94 @@
 const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
+// --- JWT Authentication Helpers (shared with frontend/app.js) ---
+function getAuthToken() {
+  return localStorage.getItem('sheland_jwt_token') || '';
+}
+
+function getRefreshToken() {
+  return localStorage.getItem('sheland_refresh_token') || '';
+}
+
+let isRefreshingToken = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) { refreshSubscribers.push(cb); }
+function onRefreshed(newToken) { refreshSubscribers.forEach(cb => cb(newToken)); refreshSubscribers = []; }
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('sheland_jwt_token', data.access_token);
+      localStorage.setItem('sheland_refresh_token', data.refresh_token);
+      if (data.user) localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+      return data.access_token;
+    } else {
+      localStorage.removeItem('sheland_jwt_token');
+      localStorage.removeItem('sheland_refresh_token');
+      return null;
+    }
+  } catch { return null; }
+}
+
+async function authFetch(url, options = {}) {
+  let token = getAuthToken();
+  const headers = options.headers || {};
+  headers['X-Requested-With'] = 'XMLHttpRequest';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  options.headers = headers;
+
+  let response = await fetch(url, options);
+
+  if (response.status === 401 && getRefreshToken()) {
+    if (!isRefreshingToken) {
+      isRefreshingToken = true;
+      const newToken = await refreshAccessToken();
+      isRefreshingToken = false;
+      if (newToken) {
+        onRefreshed(newToken);
+        options.headers['Authorization'] = `Bearer ${newToken}`;
+        return fetch(url, options);
+      }
+    } else {
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((newToken) => {
+          if (newToken) { options.headers['Authorization'] = `Bearer ${newToken}`; resolve(fetch(url, options)); }
+          else { resolve(response); }
+        });
+      });
+    }
+  }
+  return response;
+}
+
+function showToast(message, type = 'success', icon = '✔️') {
+  let container = document.getElementById('toastContainer');
+  if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; container.className = 'toast-container'; document.body.appendChild(container); }
+  const toast = document.createElement('div');
+  toast.className = `toast-item ${type}`;
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3200);
+}
+
+function clearAuthToken() {
+  localStorage.removeItem('sheland_jwt_token');
+  localStorage.removeItem('sheland_refresh_token');
+  localStorage.removeItem('sheland_user_data');
+  showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
+  setTimeout(() => location.reload(), 800);
+}
+
+// --- Admin Dashboard Constants ---
+
     const FALLBACK_ADMIN_PRODUCTS = [
       { id: 1, category_id: 1, title_ar: "فستان سهرة أنيق ومميز", title_en: "Elegant Evening Dress", price: 12500, rating: 4.8, free_shipping: true, cod_available: true, variants: [{ stock: 15 }] },
       { id: 2, category_id: 1, title_ar: "عباية سوداء فاخرة مع تطريز", title_en: "Luxury Embroidered Abaya", price: 14900, rating: 4.9, free_shipping: true, cod_available: true, variants: [{ stock: 3 }] },
