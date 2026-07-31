@@ -409,8 +409,15 @@ def register_user(request: Request, user_in: schemas.UserCreate, db: Session = D
         db.add(seller)
         db.commit()
 
-    token = auth.create_access_token({"sub": str(new_user.id), "role": new_user.role})
-    return {"access_token": token, "token_type": "bearer", "user": new_user}
+    user_agent = request.headers.get("user-agent") if request else None
+    access_token = auth.create_access_token({"sub": str(new_user.id), "role": new_user.role})
+    refresh_token = auth.create_refresh_token({"sub": str(new_user.id), "role": new_user.role}, user_agent=user_agent)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": new_user
+    }
 
 # --- Protected Admin User & Role Management Endpoints ---
 @app.post("/api/admin/users", response_model=schemas.UserResponse, status_code=201, include_in_schema=False)
@@ -541,9 +548,60 @@ def login_user(request: Request, login_in: schemas.UserLogin, db: Session = Depe
             detail="بيانات الدخول غير صحيحة (البريد الإلكتروني/رقم الجوال أو كلمة المرور خطأ)"
         )
     
-    token = auth.create_access_token({"sub": str(user.id), "role": user.role})
+    user_agent = request.headers.get("user-agent") if request else None
+    access_token = auth.create_access_token({"sub": str(user.id), "role": user.role})
+    refresh_token = auth.create_refresh_token({"sub": str(user.id), "role": user.role}, user_agent=user_agent)
     logger.info(f"✅ Security Audit: Successful login for user_id={user.id}, role={user.role} from IP={client_ip}")
-    return {"access_token": token, "token_type": "bearer", "user": user}
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.post("/api/auth/refresh", response_model=schemas.Token)
+@limiter.limit("20/minute")
+def refresh_token(
+    request: Request,
+    refresh_in: schemas.TokenRefreshRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """Refreshes short-lived Access Token and rotates Refresh Token with User-Agent binding."""
+    user_agent = request.headers.get("user-agent") if request else None
+    payload = auth.decode_refresh_token(refresh_in.refresh_token, user_agent=user_agent)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=401,
+            detail="رمز الإنعاش (Refresh Token) غير صالح أو منتهي الصلاحية أو تم إبطاله"
+        )
+
+    try:
+        user_id = int(payload.get("sub"))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="رمز الإنعاش غير صالح")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="المستخدم غير موجود")
+
+    # Refresh Token Rotation (RTR): Revoke old refresh token in Redis
+    auth.revoke_token(refresh_in.refresh_token)
+
+    # Issue brand new access_token & refresh_token pair
+    new_access_token = auth.create_access_token({"sub": str(user.id), "role": user.role})
+    new_refresh_token = auth.create_refresh_token({"sub": str(user.id), "role": user.role}, user_agent=user_agent)
+
+    # Set security headers to prevent caching of tokens
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+    return {
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+        "user": user
+    }
 
 @app.get("/api/auth/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(auth.require_current_user)):

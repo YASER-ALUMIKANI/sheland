@@ -146,4 +146,78 @@ def test_token_revocation_redis_mock():
         assert auth.is_token_revoked(token) is True
 
 
+def test_refresh_token_creation_and_decoding():
+    data = {"sub": "55", "role": "customer"}
+    ua = "Mozilla/5.0 TestBrowser"
+    refresh_tok = auth.create_refresh_token(data, user_agent=ua)
+    assert isinstance(refresh_tok, str)
+
+    # Refresh token should be decoded properly with matching UA
+    decoded = auth.decode_refresh_token(refresh_tok, user_agent=ua)
+    assert decoded is not None
+    assert decoded.get("sub") == "55"
+    assert decoded.get("type") == "refresh"
+
+    # Refresh token should NOT be accepted as access token
+    assert auth.decode_access_token(refresh_tok) is None
+
+    # Mismatched User-Agent should be rejected
+    assert auth.decode_refresh_token(refresh_tok, user_agent="DifferentBrowser/1.0") is None
+
+
+def test_refresh_token_endpoint_success_and_rotation(client):
+    headers = {"User-Agent": "TestClient/1.0"}
+    reg_payload = {
+        "name": "مستخدم الإنعاش",
+        "email": "refresh_user@sheland.com",
+        "phone": "0773334455",
+        "password": "refresh_password_123",
+        "role": "customer"
+    }
+    reg_res = client.post("/api/auth/register", json=reg_payload, headers=headers).json()
+    assert "access_token" in reg_res
+    assert "refresh_token" in reg_res
+    first_refresh_token = reg_res["refresh_token"]
+
+    # Refresh the tokens via POST /api/auth/refresh
+    refresh_res = client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": first_refresh_token},
+        headers=headers
+    )
+    assert refresh_res.status_code == 200
+    res_data = refresh_res.json()
+    assert "access_token" in res_data
+    assert "refresh_token" in res_data
+    second_refresh_token = res_data["refresh_token"]
+    assert second_refresh_token != first_refresh_token
+
+    # Refresh Token Rotation (RTR): First refresh token should now be revoked and rejected if reused!
+    reused_res = client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": first_refresh_token},
+        headers=headers
+    )
+    assert reused_res.status_code == 401
+
+
+def test_refresh_token_rejected_with_access_token(client):
+    reg_payload = {
+        "name": "مستخدم الرفض",
+        "email": "reject_user@sheland.com",
+        "phone": "0775556677",
+        "password": "reject_password_123",
+        "role": "customer"
+    }
+    reg_res = client.post("/api/auth/register", json=reg_payload).json()
+    access_token = reg_res["access_token"]
+
+    # Passing an Access Token to /api/auth/refresh must be rejected with 401
+    refresh_res = client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": access_token}
+    )
+    assert refresh_res.status_code == 401
+
+
 

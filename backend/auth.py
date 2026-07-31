@@ -54,7 +54,8 @@ else:
     SECRET_KEY = _env_secret
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours (1 day expiration)
+ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes short-lived access token
+REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 days long-lived refresh token
 
 # ponytail: Redis-backed token revocation with local memory TTL fallback & hashing
 _token_blacklist = {}  # {token_hash: expire_at_timestamp}
@@ -63,7 +64,13 @@ def _token_hash(token: str) -> str:
     """Create a short sha256 hash of the token for compact key storage."""
     return hashlib.sha256(token.encode('utf-8')).hexdigest()[:32]
 
-def revoke_token(token: str, expire_seconds: int = ACCESS_TOKEN_EXPIRE_MINUTES * 60) -> bool:
+def _ua_hash(user_agent: Optional[str]) -> Optional[str]:
+    """Create a short hash of the User-Agent header for device fingerprint binding."""
+    if not user_agent:
+        return None
+    return hashlib.md5(user_agent.encode('utf-8')).hexdigest()[:16]
+
+def revoke_token(token: str, expire_seconds: int = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600) -> bool:
     """Revoke/blacklist a JWT token via Redis with local memory TTL fallback."""
     if not token:
         return False
@@ -139,18 +146,51 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create signed JWT access token."""
+    """Create signed short-lived JWT access token (30m)."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict, user_agent: Optional[str] = None, expires_delta: Optional[timedelta] = None) -> str:
+    """Create signed long-lived JWT refresh token (7 days) with optional User-Agent binding."""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
+    to_encode.update({
+        "exp": expire,
+        "type": "refresh",
+        "jti": secrets.token_hex(8)
+    })
+    ua = _ua_hash(user_agent)
+    if ua:
+        to_encode["ua"] = ua
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_access_token(token: str) -> Optional[dict]:
-    """Decode and validate JWT access token."""
+    """Decode and validate JWT access token (rejecting refresh tokens)."""
     if not token or is_token_revoked(token):
         return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") == "refresh":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+def decode_refresh_token(token: str, user_agent: Optional[str] = None) -> Optional[dict]:
+    """Decode and validate JWT refresh token with type and optional User-Agent verification."""
+    if not token or is_token_revoked(token):
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        if "ua" in payload and user_agent:
+            expected_ua = _ua_hash(user_agent)
+            if payload["ua"] != expected_ua:
+                logger.warning("🚨 Refresh token User-Agent mismatch detected!")
+                return None
         return payload
     except jwt.PyJWTError:
         return None

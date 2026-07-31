@@ -9,9 +9,16 @@ function getAuthToken() {
   return localStorage.getItem('sheland_jwt_token') || '';
 }
 
-function setAuthToken(token, user) {
+function getRefreshToken() {
+  return localStorage.getItem('sheland_refresh_token') || '';
+}
+
+function setAuthToken(token, user, refreshToken) {
   if (token) {
     localStorage.setItem('sheland_jwt_token', token);
+  }
+  if (refreshToken) {
+    localStorage.setItem('sheland_refresh_token', refreshToken);
   }
   if (user) {
     localStorage.setItem('sheland_user_data', JSON.stringify(user));
@@ -22,20 +29,97 @@ function setAuthToken(token, user) {
 
 function clearAuthToken() {
   localStorage.removeItem('sheland_jwt_token');
+  localStorage.removeItem('sheland_refresh_token');
   localStorage.removeItem('sheland_user_data');
   showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
   setTimeout(() => location.reload(), 800);
 }
 
+let isRefreshingToken = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(newToken) {
+  refreshSubscribers.forEach(cb => cb(newToken));
+  refreshSubscribers = [];
+}
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('sheland_jwt_token', data.access_token);
+      localStorage.setItem('sheland_refresh_token', data.refresh_token);
+      if (data.user) {
+        localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
+      }
+      return data.access_token;
+    } else {
+      localStorage.removeItem('sheland_jwt_token');
+      localStorage.removeItem('sheland_refresh_token');
+      return null;
+    }
+  } catch (err) {
+    console.error("Failed to refresh token:", err);
+    return null;
+  }
+}
+
 async function authFetch(url, options = {}) {
-  const token = getAuthToken();
+  let token = getAuthToken();
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   options.headers = headers;
-  return fetch(url, options);
+
+  let response = await fetch(url, options);
+
+  if (response.status === 401 && getRefreshToken()) {
+    if (!isRefreshingToken) {
+      isRefreshingToken = true;
+      const newToken = await refreshAccessToken();
+      isRefreshingToken = false;
+
+      if (newToken) {
+        onRefreshed(newToken);
+        options.headers['Authorization'] = `Bearer ${newToken}`;
+        return fetch(url, options);
+      } else {
+        clearAuthToken();
+        return response;
+      }
+    } else {
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((newToken) => {
+          if (newToken) {
+            options.headers['Authorization'] = `Bearer ${newToken}`;
+            resolve(fetch(url, options));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+    }
+  }
+
+  return response;
 }
 
 // Local Seed Products Backup (Prices in Yemeni Rial YER)
@@ -1350,6 +1434,7 @@ async function handleCustomerLogin(e) {
     if (res.ok) {
       const data = await res.json();
       localStorage.setItem('sheland_jwt_token', data.access_token);
+      if (data.refresh_token) localStorage.setItem('sheland_refresh_token', data.refresh_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
       if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
@@ -1387,6 +1472,7 @@ async function handleCustomerRegister(e) {
     if (res.ok) {
       const data = await res.json();
       localStorage.setItem('sheland_jwt_token', data.access_token);
+      if (data.refresh_token) localStorage.setItem('sheland_refresh_token', data.refresh_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
       if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
