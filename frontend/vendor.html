@@ -209,10 +209,8 @@
     const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
     function getAuthHeaders(extraHeaders = {}) {
-      const token = localStorage.getItem('sheland_jwt_token') || '';
       return {
         ...extraHeaders,
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
     }
 
@@ -267,11 +265,6 @@
     }
 
     async function checkVendorAuth() {
-      const token = localStorage.getItem('sheland_jwt_token');
-      if (!token) {
-        showVendorAuthModal();
-        return false;
-      }
       try {
         const res = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
         if (res.ok) {
@@ -348,7 +341,6 @@
         if (res.ok) {
           const data = await res.json();
           if (['seller', 'admin', 'super_admin'].includes(data.user.role)) {
-            localStorage.setItem('sheland_jwt_token', data.access_token);
             localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
             hideVendorAuthModal();
             if (document.getElementById('vendorUserDisplay')) {
@@ -392,7 +384,6 @@
         });
         if (res.ok) {
           const data = await res.json();
-          localStorage.setItem('sheland_jwt_token', data.access_token);
           localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
           hideVendorAuthModal();
           checkVendorAuth();
@@ -412,12 +403,6 @@
 
     async function handleExcelImport(e) {
       e.preventDefault();
-      const token = localStorage.getItem('sheland_jwt_token');
-      if (!token) {
-        alert('⚠️ يلزم تسجيل الدخول لبوابة التجار أولاً لتتمكن من استيراد المنتجات');
-        showVendorAuthModal();
-        return;
-      }
 
       const fileInput = document.getElementById('excelFileDrop');
       const reportBox = document.getElementById('excelImportReport');
@@ -477,7 +462,7 @@
     }
 
     function vendorLogout() {
-      localStorage.removeItem('sheland_jwt_token');
+      fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       localStorage.removeItem('sheland_user_data');
       location.reload();
     }

@@ -2,11 +2,11 @@ const API_BASE = window.location.origin.startsWith('http') ? `${window.location.
 
 // --- JWT Authentication Helpers (shared with frontend/app.js) ---
 function getAuthToken() {
-  return localStorage.getItem('sheland_jwt_token') || '';
+  return '';
 }
 
 function getRefreshToken() {
-  return localStorage.getItem('sheland_refresh_token') || '';
+  return '';
 }
 
 let isRefreshingToken = false;
@@ -16,52 +16,42 @@ function subscribeTokenRefresh(cb) { refreshSubscribers.push(cb); }
 function onRefreshed(newToken) { refreshSubscribers.forEach(cb => cb(newToken)); refreshSubscribers = []; }
 
 async function refreshAccessToken() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ refresh_token: refreshToken })
+      body: JSON.stringify({ refresh_token: '' })
     });
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('sheland_jwt_token', data.access_token);
-      localStorage.setItem('sheland_refresh_token', data.refresh_token);
       if (data.user) localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       return data.access_token;
     } else {
-      localStorage.removeItem('sheland_jwt_token');
-      localStorage.removeItem('sheland_refresh_token');
       return null;
     }
   } catch { return null; }
 }
 
 async function authFetch(url, options = {}) {
-  let token = getAuthToken();
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
-  if (token) headers['Authorization'] = `Bearer ${token}`;
   options.headers = headers;
 
   let response = await fetch(url, options);
 
-  if (response.status === 401 && getRefreshToken()) {
+  if (response.status === 401) {
     if (!isRefreshingToken) {
       isRefreshingToken = true;
       const newToken = await refreshAccessToken();
       isRefreshingToken = false;
       if (newToken) {
         onRefreshed(newToken);
-        options.headers['Authorization'] = `Bearer ${newToken}`;
         return fetch(url, options);
       }
     } else {
       return new Promise((resolve) => {
         subscribeTokenRefresh((newToken) => {
-          if (newToken) { options.headers['Authorization'] = `Bearer ${newToken}`; resolve(fetch(url, options)); }
-          else { resolve(response); }
+          resolve(fetch(url, options));
         });
       });
     }
@@ -81,8 +71,7 @@ function showToast(message, type = 'success', icon = '✔️') {
 }
 
 function clearAuthToken() {
-  localStorage.removeItem('sheland_jwt_token');
-  localStorage.removeItem('sheland_refresh_token');
+  fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   localStorage.removeItem('sheland_user_data');
   showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
   setTimeout(() => location.reload(), 800);
@@ -152,11 +141,9 @@ function clearAuthToken() {
     }
 
     function getAuthHeaders(extraHeaders = {}) {
-      const token = localStorage.getItem('sheland_jwt_token') || '';
       return {
         'X-Requested-With': 'XMLHttpRequest',
         ...extraHeaders,
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
     }
 
@@ -306,11 +293,6 @@ function clearAuthToken() {
     }
 
     async function checkAdminAuth() {
-      const token = localStorage.getItem('sheland_jwt_token');
-      if (!token) {
-        showAdminLoginModal();
-        return false;
-      }
       try {
         const res = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
         if (res.ok) {
@@ -360,7 +342,6 @@ function clearAuthToken() {
         if (res.ok) {
           const data = await res.json();
           if (['admin', 'super_admin', 'sales_manager'].includes(data.user.role)) {
-            localStorage.setItem('sheland_jwt_token', data.access_token);
             localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
             hideAdminLoginModal();
             if (document.getElementById('adminUserDisplay')) {
@@ -396,12 +377,6 @@ function clearAuthToken() {
     }
 
     async function handleAdminExcelUpload(input) {
-      const token = localStorage.getItem('sheland_jwt_token');
-      if (!token) {
-        alert('⚠️ يلزم تسجيل الدخول كمدير أولاً لتتمكن من استيراد المنتجات');
-        showAdminLoginModal();
-        return;
-      }
       if (!input.files || input.files.length === 0) return;
 
       const file = input.files[0];
@@ -439,7 +414,7 @@ function clearAuthToken() {
     }
 
     function adminLogout() {
-      localStorage.removeItem('sheland_jwt_token');
+      fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       localStorage.removeItem('sheland_user_data');
       location.reload();
     }

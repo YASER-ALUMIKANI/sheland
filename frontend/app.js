@@ -6,31 +6,28 @@ const API_BASE = window.location.origin.startsWith('http') ? `${window.location.
 
 // JWT Authentication Helpers
 function getAuthToken() {
-  return localStorage.getItem('sheland_jwt_token') || '';
+  return '';
 }
 
 function getRefreshToken() {
-  return localStorage.getItem('sheland_refresh_token') || '';
+  return '';
 }
 
 function setAuthToken(token, user, refreshToken) {
-  if (token) {
-    localStorage.setItem('sheland_jwt_token', token);
-  }
-  if (refreshToken) {
-    localStorage.setItem('sheland_refresh_token', refreshToken);
-  }
   if (user) {
     localStorage.setItem('sheland_user_data', JSON.stringify(user));
     if (user.name) localStorage.setItem('sheland_user_name', user.name);
     if (user.phone) localStorage.setItem('sheland_user_phone', user.phone);
+    if (user.id) localStorage.setItem('sheland_user_id', user.id);
   }
 }
 
 function clearAuthToken() {
-  localStorage.removeItem('sheland_jwt_token');
-  localStorage.removeItem('sheland_refresh_token');
+  fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   localStorage.removeItem('sheland_user_data');
+  localStorage.removeItem('sheland_user_name');
+  localStorage.removeItem('sheland_user_phone');
+  localStorage.removeItem('sheland_user_id');
   showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
   setTimeout(() => location.reload(), 800);
 }
@@ -48,9 +45,6 @@ function onRefreshed(newToken) {
 }
 
 async function refreshAccessToken() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
@@ -58,20 +52,16 @@ async function refreshAccessToken() {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      body: JSON.stringify({ refresh_token: refreshToken })
+      body: JSON.stringify({ refresh_token: '' })
     });
 
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('sheland_jwt_token', data.access_token);
-      localStorage.setItem('sheland_refresh_token', data.refresh_token);
       if (data.user) {
         localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       }
       return data.access_token;
     } else {
-      localStorage.removeItem('sheland_jwt_token');
-      localStorage.removeItem('sheland_refresh_token');
       return null;
     }
   } catch (err) {
@@ -81,17 +71,13 @@ async function refreshAccessToken() {
 }
 
 async function authFetch(url, options = {}) {
-  let token = getAuthToken();
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
   options.headers = headers;
 
   let response = await fetch(url, options);
 
-  if (response.status === 401 && getRefreshToken()) {
+  if (response.status === 401) {
     if (!isRefreshingToken) {
       isRefreshingToken = true;
       const newToken = await refreshAccessToken();
@@ -99,7 +85,6 @@ async function authFetch(url, options = {}) {
 
       if (newToken) {
         onRefreshed(newToken);
-        options.headers['Authorization'] = `Bearer ${newToken}`;
         return fetch(url, options);
       } else {
         clearAuthToken();
@@ -108,12 +93,7 @@ async function authFetch(url, options = {}) {
     } else {
       return new Promise((resolve) => {
         subscribeTokenRefresh((newToken) => {
-          if (newToken) {
-            options.headers['Authorization'] = `Bearer ${newToken}`;
-            resolve(fetch(url, options));
-          } else {
-            resolve(response);
-          }
+          resolve(fetch(url, options));
         });
       });
     }
@@ -1433,8 +1413,6 @@ async function handleCustomerLogin(e) {
 
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('sheland_jwt_token', data.access_token);
-      if (data.refresh_token) localStorage.setItem('sheland_refresh_token', data.refresh_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
       if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
@@ -1471,8 +1449,6 @@ async function handleCustomerRegister(e) {
 
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('sheland_jwt_token', data.access_token);
-      if (data.refresh_token) localStorage.setItem('sheland_refresh_token', data.refresh_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
       if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
@@ -1515,20 +1491,20 @@ async function saveCustomerProfileSettings(e) {
   localStorage.setItem('sheland_user_address', address);
 
   // Sync profile update to backend database if authenticated
-  const token = localStorage.getItem('sheland_jwt_token');
-  if (token) {
-    try {
-      await fetch(`${API_BASE}/auth/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ name, phone })
-      });
-    } catch (err) {
-      console.log("Could not push profile update to server", err);
-    }
+  if (document.getElementById('accCurrentPhoneDisplay')) {
+    document.getElementById('accCurrentPhoneDisplay').innerText = phone;
+  }
+  try {
+    await authFetch(`${API_BASE}/auth/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ name, phone })
+    });
+  } catch (err) {
+    console.log("Could not push profile update to server", err);
+  }
   }
 
   if (document.getElementById('accCurrentPhoneDisplay')) {
@@ -1562,16 +1538,16 @@ async function changeCustomerPassword(e) {
     return;
   }
 
-  const token = localStorage.getItem('sheland_jwt_token');
-  if (!token) {
+  const user = getUser();
+  if (!user) {
     if (errBox) { errBox.textContent = '❌ يجب تسجيل الدخول أولاً لتغيير كلمة المرور'; errBox.style.display = 'block'; }
     return;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/auth/change-password`, {
+    const res = await authFetch(`${API_BASE}/auth/change-password`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
     });
 
@@ -1593,7 +1569,6 @@ async function changeCustomerPassword(e) {
 async function fetchAccountOrdersByPhone() {
   const phone = localStorage.getItem('sheland_user_phone') || '';
   const userId = localStorage.getItem('sheland_user_id') || '';
-  const token = localStorage.getItem('sheland_jwt_token') || '';
   const container = document.getElementById('customerAccountOrdersList');
   if (!container) return;
 
@@ -1605,10 +1580,8 @@ async function fetchAccountOrdersByPhone() {
   let apiOrders = [];
 
   try {
-    if (token) {
-      const res = await fetch(`${API_BASE}/orders/my`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+    if (getUser()) {
+      const res = await authFetch(`${API_BASE}/orders/my`);
       if (res.ok) apiOrders = await res.json();
     } else if (userId) {
       const res = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}`);
@@ -1675,19 +1648,15 @@ async function populateAccountProfileFields() {
     } catch (e) {}
   }
 
-  const token = localStorage.getItem('sheland_jwt_token');
-  if (token) {
-    try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const u = await res.json();
-        if (u.name) {
-          savedName = u.name;
-          localStorage.setItem('sheland_user_name', u.name);
-        }
-        if (u.phone) {
+  try {
+    const res = await authFetch(`${API_BASE}/auth/me`);
+    if (res.ok) {
+      const u = await res.json();
+      if (u.name) {
+        savedName = u.name;
+        localStorage.setItem('sheland_user_name', u.name);
+      }
+      if (u.phone) {
           savedPhone = u.phone;
           localStorage.setItem('sheland_user_phone', u.phone);
         }
@@ -1709,7 +1678,7 @@ function openAccountModal() {
   const modal = document.getElementById('accountModal');
   if (!modal) return;
 
-  const hasSession = localStorage.getItem('sheland_jwt_token') || localStorage.getItem('sheland_user_phone') || localStorage.getItem('sheland_user_id');
+  const hasSession = getUser() || localStorage.getItem('sheland_user_phone') || localStorage.getItem('sheland_user_id');
   const logoutBtn = document.getElementById('accLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = hasSession ? 'inline-block' : 'none';
 
@@ -1726,18 +1695,14 @@ function closeAccountModal() {
 }
 
 async function performCustomerLogout() {
-  const token = localStorage.getItem('sheland_jwt_token');
-  if (token) {
-    try {
-      await fetch(`${API_BASE}/auth/logout`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-    } catch (err) {}
-  }
+  try {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: "POST",
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+  } catch (err) {}
 
   // Wipe all customer session data completely
-  localStorage.removeItem('sheland_jwt_token');
   localStorage.removeItem('sheland_user_data');
   localStorage.removeItem('sheland_user_name');
   localStorage.removeItem('sheland_user_phone');

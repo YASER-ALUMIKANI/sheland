@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 import jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -196,8 +196,11 @@ def decode_refresh_token(token: str, user_agent: Optional[str] = None) -> Option
         return None
 
 
-def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Optional[models.User]:
-    """FastAPI dependency to extract and return current authenticated user."""
+def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db), request: Request = None) -> Optional[models.User]:
+    """FastAPI dependency to extract and return current authenticated user.
+    Checks Authorization header first, then falls back to HttpOnly cookie."""
+    if not token and request:
+        token = request.cookies.get("access_token")
     if not token:
         return None
     payload = decode_access_token(token)
