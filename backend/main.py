@@ -316,44 +316,53 @@ def deduplicate_all_products(db: Session):
 @app.on_event("startup")
 def auto_seed_on_startup():
     import threading
-    def _run_migrations_and_seed():
-        from .database import SessionLocal, engine, safe_add_column
+
+    # Run critical seed SYNCHRONOUSLY so it completes before the server accepts traffic
+    from .database import SessionLocal, engine, safe_add_column
+    try:
+        for col, default_val in [
+            ("parcel_count", "'1 من 1'"),
+            ("weight", "'0.85 كجم'"),
+            ("dimensions", "'25 × 15 × 10 سم'"),
+        ]:
+            safe_add_column(engine, "orders", col, f"VARCHAR DEFAULT {default_val}")
+
+        for col, typedef in [
+            ("image_url", "VARCHAR"),
+            ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
+            ("order_number", "VARCHAR"),
+        ]:
+            safe_add_column(engine, "reviews", col, typedef)
+
+        for col, typedef in [
+            ("coupon_code", "VARCHAR"),
+            ("discount_amount", "FLOAT DEFAULT 0.0"),
+        ]:
+            safe_add_column(engine, "orders", col, typedef)
+
+    except Exception as e:
+        logging.warning(f"Migration startup warning: {e}")
+
+    db = SessionLocal()
+    try:
+        result = _seed_database_internal(db)
+        logging.info(f"Startup seed result: {result}")
+    except Exception as e:
+        logging.error(f"Seed startup error: {e}")
+    finally:
+        db.close()
+
+    # Deduplicate in background (non-critical)
+    def _bg_dedup():
+        db2 = SessionLocal()
         try:
-            for col, default_val in [
-                ("parcel_count", "'1 من 1'"),
-                ("weight", "'0.85 كجم'"),
-                ("dimensions", "'25 × 15 × 10 سم'"),
-            ]:
-                safe_add_column(engine, "orders", col, f"VARCHAR DEFAULT {default_val}")
-
-            for col, typedef in [
-                ("image_url", "VARCHAR"),
-                ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
-                ("order_number", "VARCHAR"),
-            ]:
-                safe_add_column(engine, "reviews", col, typedef)
-
-            for col, typedef in [
-                ("coupon_code", "VARCHAR"),
-                ("discount_amount", "FLOAT DEFAULT 0.0"),
-            ]:
-                safe_add_column(engine, "orders", col, typedef)
-
+            deduplicate_all_products(db2)
         except Exception as e:
-            logging.warning(f"Migration startup warning: {e}")
-
-        db = SessionLocal()
-        try:
-            ensure_default_users(db)
-            deduplicate_all_products(db)
-            if db.query(models.Product).count() == 0:
-                _seed_database_internal(db)
-        except Exception as e:
-            logging.error(f"Seed startup error: {e}")
+            logging.warning(f"Dedup warning: {e}")
         finally:
-            db.close()
+            db2.close()
 
-    threading.Thread(target=_run_migrations_and_seed, daemon=True).start()
+    threading.Thread(target=_bg_dedup, daemon=True).start()
 
 
 # --- Internal Database Seeder ---
@@ -472,6 +481,24 @@ app.include_router(coupons_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
 app.include_router(static_router)
+
+
+@app.post("/api/seed")
+def manual_seed():
+    """Manual seed endpoint - can be called to re-seed missing data."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        result = _seed_database_internal(db)
+        product_count = db.query(models.Product).count()
+        category_count = db.query(models.Category).count()
+        user_count = db.query(models.User).count()
+        return {
+            **result,
+            "counts": {"users": user_count, "categories": category_count, "products": product_count}
+        }
+    finally:
+        db.close()
 
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
