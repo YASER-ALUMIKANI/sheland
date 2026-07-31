@@ -233,7 +233,19 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 
 def ensure_default_users(db: Session):
-    """Ensures Admin & Seller default accounts exist with valid bcrypt password hashes without overwriting existing passwords."""
+    """Ensures Admin, Super Admin & Seller default accounts exist with valid bcrypt password hashes without overwriting existing passwords."""
+    super_admin = db.query(models.User).filter(models.User.email == "superadmin@sheland.com").first()
+    if not super_admin:
+        super_admin = models.User(
+            name="المدير الفائق",
+            email="superadmin@sheland.com",
+            phone="0770000001",
+            password_hash=auth.hash_password("superadmin123"),
+            role="super_admin"
+        )
+        db.add(super_admin)
+        db.commit()
+
     admin = db.query(models.User).filter(models.User.email == "admin@sheland.com").first()
     if not admin:
         admin = models.User(

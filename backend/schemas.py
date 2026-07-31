@@ -46,6 +46,11 @@ class UserProfileUpdate(BaseModel):
     phone: Optional[str] = None
 
 
+class PasswordChange(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
 class UserLogin(BaseModel):
     email_or_phone: str
     password: str

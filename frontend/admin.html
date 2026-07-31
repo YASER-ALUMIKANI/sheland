@@ -58,6 +58,7 @@
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
         <span id="adminUserDisplay" style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-weight: 700;">👤 مدير النظام</span>
+        <button onclick="openPasswordModal()" style="background: #F59E0B; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;">🔒 تغيير كلمة المرور</button>
         <button onclick="adminLogout()" style="background: var(--danger); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;">تسجيل الخروج 🔒</button>
         <a href="/" target="_blank" style="background: rgba(255,255,255,0.15); color: white; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px;">👁️ معاينة المتجر</a>
       </div>
@@ -710,44 +711,76 @@
 
         <button type="submit" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 12px; border-radius: 8px; font-size: 15px;">حفظ المنتج وتحديث المنصة 💾</button>
       </form>
-    </div>
   </div>
+</div>
 
-  <script src="/admin/app.js"></script>
+<!-- Modal: Change Password -->
+<div id="passwordModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+  <div style="background: white; border-radius: 12px; max-width: 420px; width: 90%; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-weight: 900; color: #8B2C7C; font-size: 18px;">🔒 تغيير كلمة المرور</h3>
+      <button onclick="closePasswordModal()" style="background: none; border: none; font-size: 20px; font-weight: bold; cursor: pointer; color: #64748B;">✕</button>
+    </div>
 
-  <!-- Modal: Edit Parcel Details -->
-  <div id="parcelModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-weight: 900; color: #8B2C7C; font-size: 18px;">📦 إدخال وتعديل بيانات الطرد (قسم الطلبات)</h3>
-        <button onclick="closeParcelModal()" style="background: none; border: none; font-size: 20px; font-weight: bold; cursor: pointer; color: #64748B;">✕</button>
+    <form onsubmit="changePassword(event)">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">كلمة المرور الحالية:</label>
+        <input type="password" id="currentPassword" placeholder="أدخل كلمة المرور الحالية" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
       </div>
 
-      <form onsubmit="saveParcelDetails(event)">
-        <input type="hidden" id="parcelOrderId">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">كلمة المرور الجديدة:</label>
+        <input type="password" id="newPassword" placeholder="أدخل كلمة المرور الجديدة (6 أحرف على الأقل)" required minlength="6" style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
+      </div>
 
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">📦 عدد الطرود:</label>
-          <input type="text" id="parcelCountInput" placeholder="مثال: 1 من 1" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
-        </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">تأكيد كلمة المرور الجديدة:</label>
+        <input type="password" id="confirmPassword" placeholder="أعد إدخال كلمة المرور الجديدة" required minlength="6" style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
+      </div>
 
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">⚖️ الوزن:</label>
-          <input type="text" id="parcelWeightInput" placeholder="مثال: 0.85 كجم" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">📏 الأبعاد:</label>
-          <input type="text" id="parcelDimensionsInput" placeholder="مثال: 25 × 15 × 10 سم" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
-        </div>
-
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button type="button" onclick="closeParcelModal()" style="background: #E2E8F0; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">إلغاء</button>
-          <button type="submit" style="background: #8B2C7C; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">💾 حفظ وتحديث الملصق</button>
-        </div>
-      </form>
-    </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closePasswordModal()" style="background: #E2E8F0; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">إلغاء</button>
+        <button type="submit" style="background: #8B2C7C; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">💾 حفظ كلمة المرور</button>
+      </div>
+    </form>
   </div>
+</div>
+
+<!-- Modal: Edit Parcel Details -->
+<div id="parcelModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+  <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-weight: 900; color: #8B2C7C; font-size: 18px;">📦 إدخال وتعديل بيانات الطرد (قسم الطلبات)</h3>
+      <button onclick="closeParcelModal()" style="background: none; border: none; font-size: 20px; font-weight: bold; cursor: pointer; color: #64748B;">✕</button>
+    </div>
+
+    <form onsubmit="saveParcelDetails(event)">
+      <input type="hidden" id="parcelOrderId">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">📦 عدد الطرود:</label>
+        <input type="text" id="parcelCountInput" placeholder="مثال: 1 من 1" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">⚖️ الوزن:</label>
+        <input type="text" id="parcelWeightInput" placeholder="مثال: 0.85 كجم" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: 800; color: #1E1B2E; margin-bottom: 6px; font-size: 14px;">📏 الأبعاد:</label>
+        <input type="text" id="parcelDimensionsInput" placeholder="مثال: 25 × 15 × 10 سم" required style="width: 100%; padding: 10px 14px; border: 1.5px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-weight: 700; box-sizing: border-box;">
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closeParcelModal()" style="background: #E2E8F0; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">إلغاء</button>
+        <button type="submit" style="background: #8B2C7C; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer;">💾 حفظ وتحديث الملصق</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <script src="/admin/app.js"></script>
 </body>
 </html>
 

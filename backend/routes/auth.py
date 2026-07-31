@@ -185,6 +185,21 @@ def update_user_profile(
     return current_user
 
 
+@router.put("/api/auth/change-password")
+def change_password(
+    password_in: schemas.PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_current_user)
+):
+    """Change the current user's own password. Requires current password verification."""
+    if not auth.verify_password(password_in.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="كلمة المرور الحالية غير صحيحة")
+
+    current_user.password_hash = auth.hash_password(password_in.new_password)
+    db.commit()
+    return {"message": "تم تغيير كلمة المرور بنجاح"}
+
+
 @router.post("/api/auth/logout")
 def logout_user(token: Optional[str] = Depends(auth.oauth2_scheme)):
     """Logout current user and invalidate (blacklist) their JWT access token."""

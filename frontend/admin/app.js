@@ -1475,6 +1475,53 @@ function clearAuthToken() {
       document.getElementById('parcelModal').style.display = 'none';
     }
 
+    /* --- PASSWORD CHANGE MODAL --- */
+    function openPasswordModal() {
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+      document.getElementById('passwordModal').style.display = 'flex';
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    async function changePassword(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        showToast('❌ كلمة المرور الجديدة غير متطابقة', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showToast('❌ كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/change-password`, {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+
+        if (res.ok) {
+          showToast('✅ تم تغيير كلمة المرور بنجاح', 'success');
+          closePasswordModal();
+        } else {
+          const err = await res.json();
+          showToast('❌ ' + (err.detail || 'حدث خطأ أثناء تغيير كلمة المرور'), 'error');
+        }
+      } catch (err) {
+        showToast('❌ خطأ في الاتصال بالخادم', 'error');
+      }
+    }
+
     async function saveParcelDetails(e) {
       e.preventDefault();
       const orderId = parseInt(document.getElementById('parcelOrderId').value);
