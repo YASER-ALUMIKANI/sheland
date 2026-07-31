@@ -314,44 +314,45 @@ def deduplicate_all_products(db: Session):
 
 @app.on_event("startup")
 def auto_seed_on_startup():
-    from .database import SessionLocal, engine, safe_add_column
-    # ponytail: Safe schema migration using inspection & identifier regex checks
-    try:
-        # Parcel detail columns for orders
-        for col, default_val in [
-            ("parcel_count", "'1 من 1'"),
-            ("weight", "'0.85 كجم'"),
-            ("dimensions", "'25 × 15 × 10 سم'"),
-        ]:
-            safe_add_column(engine, "orders", col, f"VARCHAR DEFAULT {default_val}")
+    import threading
+    def _run_migrations_and_seed():
+        from .database import SessionLocal, engine, safe_add_column
+        try:
+            for col, default_val in [
+                ("parcel_count", "'1 من 1'"),
+                ("weight", "'0.85 كجم'"),
+                ("dimensions", "'25 × 15 × 10 سم'"),
+            ]:
+                safe_add_column(engine, "orders", col, f"VARCHAR DEFAULT {default_val}")
 
-        # Review photo + verified purchase migration
-        for col, typedef in [
-            ("image_url", "VARCHAR"),
-            ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
-            ("order_number", "VARCHAR"),
-        ]:
-            safe_add_column(engine, "reviews", col, typedef)
+            for col, typedef in [
+                ("image_url", "VARCHAR"),
+                ("is_verified_purchase", "BOOLEAN DEFAULT 0"),
+                ("order_number", "VARCHAR"),
+            ]:
+                safe_add_column(engine, "reviews", col, typedef)
 
-        # Coupon code + discount amount migration for orders table
-        for col, typedef in [
-            ("coupon_code", "VARCHAR"),
-            ("discount_amount", "FLOAT DEFAULT 0.0"),
-        ]:
-            safe_add_column(engine, "orders", col, typedef)
+            for col, typedef in [
+                ("coupon_code", "VARCHAR"),
+                ("discount_amount", "FLOAT DEFAULT 0.0"),
+            ]:
+                safe_add_column(engine, "orders", col, typedef)
 
-    except Exception as e:
-        logging.warning(f"Migration startup warning: {e}")
+        except Exception as e:
+            logging.warning(f"Migration startup warning: {e}")
 
+        db = SessionLocal()
+        try:
+            ensure_default_users(db)
+            deduplicate_all_products(db)
+            if db.query(models.Product).count() == 0:
+                _seed_database_internal(db)
+        except Exception as e:
+            logging.error(f"Seed startup error: {e}")
+        finally:
+            db.close()
 
-    db = SessionLocal()
-    try:
-        ensure_default_users(db)
-        deduplicate_all_products(db)
-        if db.query(models.Product).count() == 0:
-            _seed_database_internal(db)
-    finally:
-        db.close()
+    threading.Thread(target=_run_migrations_and_seed, daemon=True).start()
 
 
 # --- Internal Database Seeder ---
