@@ -1541,6 +1541,54 @@ async function saveCustomerProfileSettings(e) {
   switchAccountSubTab('orders');
 }
 
+async function changeCustomerPassword(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('custCurrentPass').value;
+  const newPassword = document.getElementById('custNewPass').value;
+  const confirmPassword = document.getElementById('custConfirmPass').value;
+  const errBox = document.getElementById('custPassError');
+  const successBox = document.getElementById('custPassSuccess');
+
+  if (errBox) errBox.style.display = 'none';
+  if (successBox) successBox.style.display = 'none';
+
+  if (newPassword !== confirmPassword) {
+    if (errBox) { errBox.textContent = '❌ كلمة المرور الجديدة غير متطابقة'; errBox.style.display = 'block'; }
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    if (errBox) { errBox.textContent = '❌ كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل'; errBox.style.display = 'block'; }
+    return;
+  }
+
+  const token = localStorage.getItem('sheland_jwt_token');
+  if (!token) {
+    if (errBox) { errBox.textContent = '❌ يجب تسجيل الدخول أولاً لتغيير كلمة المرور'; errBox.style.display = 'block'; }
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/change-password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+    });
+
+    if (res.ok) {
+      if (successBox) { successBox.textContent = '✅ تم تغيير كلمة المرور بنجاح'; successBox.style.display = 'block'; }
+      document.getElementById('custCurrentPass').value = '';
+      document.getElementById('custNewPass').value = '';
+      document.getElementById('custConfirmPass').value = '';
+    } else {
+      const err = await res.json();
+      if (errBox) { errBox.textContent = '❌ ' + (err.detail || 'حدث خطأ أثناء تغيير كلمة المرور'); errBox.style.display = 'block'; }
+    }
+  } catch (err) {
+    if (errBox) { errBox.textContent = '❌ خطأ في الاتصال بالخادم'; errBox.style.display = 'block'; }
+  }
+}
+
 
 async function fetchAccountOrdersByPhone() {
   const phone = localStorage.getItem('sheland_user_phone') || '';

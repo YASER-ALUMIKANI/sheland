@@ -869,6 +869,28 @@
             </div>
           </form>
         </div>
+
+        <!-- Password Change Section -->
+        <div style="background: #F8F9FA; padding: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 12px;" id="custPasswordSection">
+          <h4 style="margin: 0 0 12px 0; color: var(--primary-dark); font-weight: 800;">🔒 تغيير كلمة المرور</h4>
+          <form onsubmit="changeCustomerPassword(event)">
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">كلمة المرور الحالية *:</label>
+              <input type="password" id="custCurrentPass" required placeholder="أدخل كلمة المرور الحالية" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">كلمة المرور الجديدة *:</label>
+              <input type="password" id="custNewPass" required minlength="6" placeholder="6 أحرف على الأقل" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">تأكيد كلمة المرور الجديدة *:</label>
+              <input type="password" id="custConfirmPass" required minlength="6" placeholder="أعد إدخال كلمة المرور الجديدة" style="width: 100%; padding: 8px 12px; border: 1px solid #CCC; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div id="custPassError" style="display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-bottom: 10px; background: #FFEBEE; padding: 6px; border-radius: 4px;"></div>
+            <div id="custPassSuccess" style="display: none; color: var(--success); font-size: 12px; font-weight: 700; margin-bottom: 10px; background: #E8F5E9; padding: 6px; border-radius: 4px;"></div>
+            <button type="submit" style="width: 100%; background: var(--primary); color: white; font-weight: 800; padding: 10px; border-radius: 6px; border: none; font-size: 14px; cursor: pointer;">🔒 حفظ كلمة المرور الجديدة</button>
+          </form>
+        </div>
       </div>
 
 
