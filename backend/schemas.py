@@ -161,7 +161,6 @@ class OrderCreate(BaseModel):
     payment_method: str = "COD"
     payment_tx_id: Optional[str] = None
     coupon_code: Optional[str] = None
-    discount_amount: Optional[float] = 0.0
     items: List[CartItemCreate]
 
 class OrderItemResponse(BaseModel):

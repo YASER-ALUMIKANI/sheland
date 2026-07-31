@@ -194,8 +194,6 @@ def create_order(
                 discount = round(total * (coupon.discount_value / 100.0), 2)
             elif coupon.discount_type == "fixed":
                 discount = min(total, coupon.discount_value)
-    elif order_in.discount_amount and order_in.discount_amount > 0:
-        discount = min(total, order_in.discount_amount)
 
     final_net_total = max(0.0, round(total - discount, 2))
 
