@@ -658,12 +658,6 @@ async function submitProductReview() {
 
   const comment = (document.getElementById('revComment')?.value || '').trim();
   const author  = (document.getElementById('revAuthor')?.value || '').trim();
-  const orderNum = (document.getElementById('revOrderNumber')?.value || '').trim().toUpperCase();
-
-  if (!orderNum) {
-    showToast('رقم الطلب مطلوب للتحقق من الشراء.', 'danger', '⚠️');
-    return;
-  }
 
   if (!comment) {
     showToast('يرجى كتابة انطباعك عن المنتج قبل النشر.', 'danger', '⚠️');
@@ -674,7 +668,6 @@ async function submitProductReview() {
     author_name: author || 'عميل شي لاند',
     rating: _selectedStars,
     comment,
-    order_number: orderNum,
     image_url: _reviewPhotoUrl || null
   };
 

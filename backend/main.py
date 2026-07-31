@@ -1469,30 +1469,46 @@ def create_product_review(
     if not prod:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    if not review_in.order_number or not review_in.order_number.strip():
-        raise HTTPException(status_code=400, detail="رقم الطلب مطلوب للتحقق من الشراء")
+    # Automatically find a delivered order for current_user containing product_id
+    delivered_order = (
+        db.query(models.Order)
+        .join(models.OrderItem, models.Order.id == models.OrderItem.order_id)
+        .filter(
+            models.Order.user_id == current_user.id,
+            models.Order.status == "delivered",
+            models.OrderItem.product_id == product_id
+        )
+        .order_by(models.Order.id.desc())
+        .first()
+    )
 
-    order_num_upper = review_in.order_number.strip().upper()
-    order = db.query(models.Order).filter(
-        models.Order.order_number == order_num_upper,
-        models.Order.user_id == current_user.id
-    ).first()
-
-    if not order:
-        raise HTTPException(status_code=404, detail="الطلب غير موجود أو لا يخص حسابك")
-
-    has_product = any(item.product_id == product_id for item in order.items)
-    if not has_product:
-        raise HTTPException(status_code=400, detail="هذا الطلب لا يحتوي على هذا المنتج")
-
-    if order.status != "delivered":
-        raise HTTPException(status_code=400, detail="يمكنك التقييم فقط بعد استلام الطلب وتغيير حالته إلى مكتمل")
+    if not delivered_order:
+        # Check if user has an undelivered order containing the product
+        any_order = (
+            db.query(models.Order)
+            .join(models.OrderItem, models.Order.id == models.OrderItem.order_id)
+            .filter(
+                models.Order.user_id == current_user.id,
+                models.OrderItem.product_id == product_id
+            )
+            .first()
+        )
+        if any_order:
+            raise HTTPException(
+                status_code=400,
+                detail="يمكنك إضافة تقييمك بعد استلام الطلب وتغيير حالته إلى مكتمل (delivered)"
+            )
+        else:
+            raise HTTPException(
+                status_code=403,
+                detail="عذراً، يمكنك إضافة تقييم فقط للمنتجات التي قمت بشرائها واستلامها بنجاح"
+            )
 
     db_review = models.Review(
         product_id=product_id,
         user_id=current_user.id,
         author_name=current_user.name or review_in.author_name or "عميل شي لاند",
-        order_number=order_num_upper,
+        order_number=delivered_order.order_number,
         is_verified_purchase=True,
         rating=review_in.rating,
         comment=review_in.comment,

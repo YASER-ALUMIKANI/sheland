@@ -418,14 +418,10 @@
               <!-- Review Text -->
               <textarea id="revComment" placeholder="اكتب انطباعك الحقيقي عن المنتج: الجودة، المظهر، سرعة التوصيل..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #CCC; margin-bottom: 8px; font-size: 13px; height: 70px; resize: vertical; box-sizing:border-box;"></textarea>
 
-              <!-- Optional: Verify Purchase -->
-              <div style="background: #F0FBF5; border: 1px solid #A7D9BE; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-                <div style="font-size: 12px; font-weight: 800; color: #1A7A4C; margin-bottom: 6px;">🛒 تحقق من شرائك (اختياري) — للحصول على شارة "مشترٍ حقيقي"</div>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  <input type="text" id="revOrderNumber" placeholder="رقم الطلب (مثال: ORD-ABC12345)" style="flex:1; padding: 6px 10px; border-radius: 6px; border: 1px solid #CCC; font-size: 12px;">
-                  <button onclick="verifyOrderForReview()" style="background: #1A7A4C; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; white-space:nowrap;">تحقق</button>
-                </div>
-                <span id="verifiedPurchaseBadge" style="display:none; margin-top:6px; background:#1A7A4C; color:white; font-size:10px; font-weight:800; padding:2px 10px; border-radius:20px;">✔ مشترٍ حقيقي — تم التحقق</span>
+              <!-- Automatic Buyer Verification Badge -->
+              <div style="background: #F0FBF5; border: 1px solid #A7D9BE; border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">🛡️</span>
+                <span style="font-size: 12px; font-weight: 700; color: #1A7A4C;">يتم التحقق آلياً من شرائك واستلامك للمنتج للحصول على شارة "مشترٍ حقيقي".</span>
               </div>
 
               <!-- Optional: Attach Photo -->

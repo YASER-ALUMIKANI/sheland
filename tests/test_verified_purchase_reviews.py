@@ -1,6 +1,6 @@
 """
-CityLand Backend - Unit Tests for Verified Purchase Product Reviews
-# ponytail: Clean, comprehensive test suite for review authentication & purchase verification
+CityLand Backend - Unit Tests for Automated Verified Purchase Product Reviews
+# ponytail: Clean, comprehensive test suite for automated buyer verification
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -26,7 +26,6 @@ def create_product(db, title="اختبار منتج ممتاز", price=10000.0):
         db.commit()
         db.refresh(cat)
 
-    # Ensure a seller exists first
     import secrets
     seller_user = create_user(db, name="تاجر خبير", phone=f"077{secrets.randbelow(8999999)+1000000}", email=f"seller_{secrets.token_hex(4)}@test.com", role="seller")
     seller = models.Seller(user_id=seller_user.id, store_name="متجر التقييمات")
@@ -80,7 +79,6 @@ def create_order(db, user_id, product_id, order_number="ORD-REV-1001", status="d
 def test_unauthenticated_review_creation_rejected():
     """Unauthenticated POST to product review must be rejected (401)."""
     payload = {
-        "order_number": "ORD-REV-1001",
         "rating": 5,
         "comment": "تقييم بدون تسجيل دخول"
     }
@@ -88,10 +86,10 @@ def test_unauthenticated_review_creation_rejected():
     assert response.status_code == 401
 
 
-def test_review_creation_without_order_number_rejected():
-    """Missing or empty order_number must be rejected."""
+def test_review_creation_for_user_without_purchase_rejected():
+    """User who hasn't purchased the product must be rejected with 403."""
     db = TestingSessionLocal()
-    user = create_user(db)
+    user = create_user(db, email="nobuyer@test.com", phone="0770000001")
     prod = create_product(db)
     prod_id = prod.id
     token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
@@ -99,73 +97,19 @@ def test_review_creation_without_order_number_rejected():
 
     payload = {
         "rating": 5,
-        "comment": "تقييم بدون رقم طلب"
+        "comment": "تقييم بدون شراء سابق"
     }
     response = client.post(
         f"/api/products/{prod_id}/reviews",
         headers={"Authorization": f"Bearer {token}"},
         json=payload
     )
-    assert response.status_code == 422  # Pydantic validation error for missing required field
-
-
-def test_review_creation_with_other_user_order_rejected():
-    """Using an order_number that belongs to another user must return 404."""
-    db = TestingSessionLocal()
-    user1 = create_user(db, email="user1@test.com", phone="0770000001")
-    user2 = create_user(db, email="user2@test.com", phone="0770000002")
-    prod = create_product(db)
-    prod_id = prod.id
-    create_order(db, user_id=user1.id, product_id=prod_id, order_number="ORD-USER1-99")
-
-    # User 2 tries to review using User 1's order
-    token2 = auth.create_access_token(data={"sub": str(user2.id), "role": user2.role})
-    db.close()
-
-    payload = {
-        "order_number": "ORD-USER1-99",
-        "rating": 5,
-        "comment": "تقييم برقم طلب مستخدم آخر"
-    }
-    response = client.post(
-        f"/api/products/{prod_id}/reviews",
-        headers={"Authorization": f"Bearer {token2}"},
-        json=payload
-    )
-    assert response.status_code == 404
-    assert "لا يخص حسابك" in response.json()["detail"]
-
-
-def test_review_creation_for_order_without_product_rejected():
-    """Using a valid order that does NOT contain the target product must return 400."""
-    db = TestingSessionLocal()
-    user = create_user(db, email="user_mismatch@test.com", phone="0770000003")
-    prod1 = create_product(db, title="المنتج الأول")
-    prod2 = create_product(db, title="المنتج الثاني")
-    prod2_id = prod2.id
-
-    # Order contains prod1 only
-    create_order(db, user_id=user.id, product_id=prod1.id, order_number="ORD-PROD1-ONLY")
-    token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
-    db.close()
-
-    # User tries to review prod2 using order for prod1
-    payload = {
-        "order_number": "ORD-PROD1-ONLY",
-        "rating": 4,
-        "comment": "تقييم لمنتج آخر لم يتم شراؤه"
-    }
-    response = client.post(
-        f"/api/products/{prod2_id}/reviews",
-        headers={"Authorization": f"Bearer {token}"},
-        json=payload
-    )
-    assert response.status_code == 400
-    assert "لا يحتوي على هذا المنتج" in response.json()["detail"]
+    assert response.status_code == 403
+    assert "يمكنك إضافة تقييم فقط للمنتجات التي قمت بشرائها" in response.json()["detail"]
 
 
 def test_review_creation_for_undelivered_order_rejected():
-    """Reviewing a product in an order with status='pending' or 'processing' must return 400."""
+    """Reviewing a product in an order with status='pending' must return 400."""
     db = TestingSessionLocal()
     user = create_user(db, email="user_pending@test.com", phone="0770000004")
     prod = create_product(db)
@@ -175,7 +119,6 @@ def test_review_creation_for_undelivered_order_rejected():
     db.close()
 
     payload = {
-        "order_number": "ORD-PENDING-01",
         "rating": 5,
         "comment": "تقييم لطلب قيد الانتظار لم يُستلم بعد"
     }
@@ -188,8 +131,8 @@ def test_review_creation_for_undelivered_order_rejected():
     assert "بعد استلام الطلب" in response.json()["detail"]
 
 
-def test_valid_verified_buyer_review_success():
-    """Authenticated buyer with delivered order containing product succeeds and marks review verified."""
+def test_valid_automated_verified_buyer_review_success():
+    """Authenticated buyer with delivered order automatically matches order and marks review verified."""
     db = TestingSessionLocal()
     user = create_user(db, email="valid_buyer@test.com", phone="0770000005")
     prod = create_product(db)
@@ -198,9 +141,8 @@ def test_valid_verified_buyer_review_success():
     token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
 
     payload = {
-        "order_number": "ord-delivered-88",  # lowercase should be converted to uppercase
         "rating": 5,
-        "comment": "منتج ممتاز وشراء موثق بنجاح!"
+        "comment": "منتج ممتاز والتحقق الآلي عمل بنجاح!"
     }
     response = client.post(
         f"/api/products/{prod_id}/reviews",
