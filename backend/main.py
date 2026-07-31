@@ -1470,12 +1470,13 @@ def create_product_review(
         raise HTTPException(status_code=404, detail="Product not found")
 
     # Automatically find a delivered order for current_user containing product_id
+    delivered_statuses = ["delivered", "مكتمل", "completed", "تم التسليم", "مكتمل (تم التسليم)"]
     delivered_order = (
         db.query(models.Order)
         .join(models.OrderItem, models.Order.id == models.OrderItem.order_id)
         .filter(
             models.Order.user_id == current_user.id,
-            models.Order.status == "delivered",
+            models.Order.status.in_(delivered_statuses),
             models.OrderItem.product_id == product_id
         )
         .order_by(models.Order.id.desc())

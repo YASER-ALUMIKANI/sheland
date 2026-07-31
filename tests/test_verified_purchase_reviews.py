@@ -159,3 +159,29 @@ def test_valid_automated_verified_buyer_review_success():
     assert prod.rating == 5.0
     assert prod.review_count == 1
     db.close()
+
+
+def test_valid_arabic_muktamal_order_review_success():
+    """Authenticated buyer with order status 'مكتمل' automatically matches order and marks review verified."""
+    db = TestingSessionLocal()
+    user = create_user(db, email="arabic_buyer@test.com", phone="0770000006")
+    prod = create_product(db)
+    prod_id = prod.id
+    create_order(db, user_id=user.id, product_id=prod_id, order_number="ORD-ARABIC-99", status="مكتمل")
+    token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
+
+    payload = {
+        "rating": 5,
+        "comment": "تم الشراء وتأكيد استلام الطلب بالحالة العربية مكتمل بنجاح!"
+    }
+    response = client.post(
+        f"/api/products/{prod_id}/reviews",
+        headers={"Authorization": f"Bearer {token}"},
+        json=payload
+    )
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["rating"] == 5
+    assert res_data["is_verified_purchase"] is True
+    db.close()
+
