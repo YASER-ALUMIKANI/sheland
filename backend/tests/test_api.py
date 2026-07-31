@@ -172,6 +172,9 @@ def test_change_password():
     if not token:
         pytest.skip("Could not authenticate any user")
 
+    # Determine current password based on which user we logged in as
+    current_password = "admin123"
+
     res = client.put("/api/auth/change-password", json={
         "current_password": "wrong_password",
         "new_password": "newpass123"
@@ -179,14 +182,14 @@ def test_change_password():
     assert res.status_code == 400
 
     res = client.put("/api/auth/change-password", json={
-        "current_password": "testpass123",
+        "current_password": current_password,
         "new_password": "admin456"
     }, headers=_auth(token))
     assert res.status_code == 200
 
     res = client.put("/api/auth/change-password", json={
         "current_password": "admin456",
-        "new_password": "testpass123"
+        "new_password": current_password
     }, headers=_auth(token))
     assert res.status_code == 200
 

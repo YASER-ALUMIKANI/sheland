@@ -210,6 +210,7 @@
 
     function getAuthHeaders(extraHeaders = {}) {
       return {
+        'X-Requested-With': 'XMLHttpRequest',
         ...extraHeaders,
       };
     }
@@ -335,7 +336,7 @@
       try {
         const res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
           body: JSON.stringify({ email_or_phone, password })
         });
         if (res.ok) {
@@ -379,7 +380,7 @@
       try {
         const res = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
           body: JSON.stringify({ name, email, phone, password, role: 'seller' })
         });
         if (res.ok) {

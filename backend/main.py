@@ -363,31 +363,18 @@ def _seed_database_internal(db: Session):
     if db.query(models.Category).first():
         return {"message": "Default admin and seller accounts verified. Categories already seeded."}
 
-    # Seed Admin & Seller Users with bcrypt passwords
-    admin_user = models.User(
-        name="مدير منصة شي لاند",
-        email="admin@sheland.com",
-        phone="0770000000",
-        password_hash=auth.hash_password("admin123"),
-        role="admin"
-    )
-    db.add(admin_user)
-
-    seller_user = models.User(
-        name="متجر شي لاند الرسمي",
-        email="seller@sheland.com",
-        phone="0771111111",
-        password_hash=auth.hash_password("seller123"),
-        role="seller"
-    )
-    db.add(seller_user)
-    db.commit()
+    # Users already created by ensure_default_users, get the seller
+    seller_user = db.query(models.User).filter(models.User.email == "seller@sheland.com").first()
+    if not seller_user:
+        return {"message": "Seller user not found, cannot seed products."}
     db.refresh(seller_user)
 
-    seller = models.Seller(user_id=seller_user.id, store_name="Sheland Official Store", rating=4.8)
-    db.add(seller)
-    db.commit()
-    db.refresh(seller)
+    seller = db.query(models.Seller).filter(models.Seller.user_id == seller_user.id).first()
+    if not seller:
+        seller = models.Seller(user_id=seller_user.id, store_name="Sheland Official Store", rating=4.8)
+        db.add(seller)
+        db.commit()
+        db.refresh(seller)
 
     # Seed Categories
     cats_data = [

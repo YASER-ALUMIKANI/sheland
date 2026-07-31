@@ -13,6 +13,10 @@ function getRefreshToken() {
   return '';
 }
 
+function getUser() {
+  try { return JSON.parse(localStorage.getItem('sheland_user_data')); } catch { return null; }
+}
+
 function setAuthToken(token, user, refreshToken) {
   if (user) {
     localStorage.setItem('sheland_user_data', JSON.stringify(user));
@@ -1491,9 +1495,6 @@ async function saveCustomerProfileSettings(e) {
   localStorage.setItem('sheland_user_address', address);
 
   // Sync profile update to backend database if authenticated
-  if (document.getElementById('accCurrentPhoneDisplay')) {
-    document.getElementById('accCurrentPhoneDisplay').innerText = phone;
-  }
   try {
     await authFetch(`${API_BASE}/auth/profile`, {
       method: "PUT",
@@ -1504,7 +1505,6 @@ async function saveCustomerProfileSettings(e) {
     });
   } catch (err) {
     console.log("Could not push profile update to server", err);
-  }
   }
 
   if (document.getElementById('accCurrentPhoneDisplay')) {
