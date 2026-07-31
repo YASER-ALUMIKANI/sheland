@@ -13,6 +13,9 @@ function getRefreshToken() {
   return '';
 }
 
+// All fetch calls must include credentials for cookie-based auth
+const FETCH_CREDENTIALS = 'same-origin';
+
 function getUser() {
   try { return JSON.parse(localStorage.getItem('sheland_user_data')); } catch { return null; }
 }
@@ -27,7 +30,7 @@ function setAuthToken(token, user, refreshToken) {
 }
 
 function clearAuthToken() {
-  fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: FETCH_CREDENTIALS });
   localStorage.removeItem('sheland_user_data');
   localStorage.removeItem('sheland_user_name');
   localStorage.removeItem('sheland_user_phone');
@@ -56,6 +59,7 @@ async function refreshAccessToken() {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       },
+      credentials: FETCH_CREDENTIALS,
       body: JSON.stringify({ refresh_token: '' })
     });
 
@@ -78,6 +82,7 @@ async function authFetch(url, options = {}) {
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
   options.headers = headers;
+  options.credentials = options.credentials || FETCH_CREDENTIALS;
 
   let response = await fetch(url, options);
 
@@ -258,7 +263,7 @@ function renderSkeletonLoadingUI() {
 async function fetchProductsFromAPI() {
   renderSkeletonLoadingUI();
   try {
-    const res = await fetch(`${API_BASE}/products`);
+    const res = await fetch(`${API_BASE}/products`, { credentials: FETCH_CREDENTIALS });
     if (res.ok) {
       const data = await res.json();
       if (data && data.length > 0) {
@@ -593,7 +598,7 @@ async function loadProductReviews(prodId) {
   container.innerHTML = '<div style="font-size:12px; color:#888;">جاري تحميل التقييمات...</div>';
 
   try {
-    const res = await fetch(`${API_BASE}/products/${prodId}/reviews`);
+    const res = await fetch(`${API_BASE}/products/${prodId}/reviews`, { credentials: FETCH_CREDENTIALS });
     if (res.ok) {
       const revs = await res.json();
       if (revs.length === 0) {
@@ -697,7 +702,7 @@ async function verifyOrderForReview() {
     return;
   }
   try {
-    const res = await fetch(`${API_BASE}/orders/check-purchased?order_number=${orderNum}&product_id=${currentModalProduct.id}`);
+    const res = await fetch(`${API_BASE}/orders/check-purchased?order_number=${orderNum}&product_id=${currentModalProduct.id}`, { credentials: FETCH_CREDENTIALS });
     const data = await res.json();
     const badge = document.getElementById('verifiedPurchaseBadge');
     if (data.verified) {
@@ -778,7 +783,7 @@ async function applyCouponCode() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code)}&total=${totalRaw}`);
+    const res = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code)}&total=${totalRaw}`, { credentials: FETCH_CREDENTIALS });
     if (res.ok) {
       const data = await res.json();
       activeDiscountAmount = data.discount_amount;
@@ -923,7 +928,7 @@ async function executeTrackOrder() {
   resBox.style.display = 'none';
 
   try {
-    const res = await fetch(`${API_BASE}/orders/track/${num}`);
+    const res = await fetch(`${API_BASE}/orders/track/${num}`, { credentials: FETCH_CREDENTIALS });
     if (res.ok) {
       const order = await res.json();
       const statusMap = {
@@ -1339,7 +1344,8 @@ async function handleVendorAddProduct(e) {
   try {
     await fetch(`${API_BASE}/products`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: FETCH_CREDENTIALS,
       body: JSON.stringify(newProd)
     });
   } catch (err) {
@@ -1412,6 +1418,7 @@ async function handleCustomerLogin(e) {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: FETCH_CREDENTIALS,
       body: JSON.stringify({ email_or_phone, password })
     });
 
@@ -1448,6 +1455,7 @@ async function handleCustomerRegister(e) {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: FETCH_CREDENTIALS,
       body: JSON.stringify({ name, email, phone, password, role: 'customer' })
     });
 
@@ -1584,10 +1592,10 @@ async function fetchAccountOrdersByPhone() {
       const res = await authFetch(`${API_BASE}/orders/my`);
       if (res.ok) apiOrders = await res.json();
     } else if (userId) {
-      const res = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}`);
+      const res = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}`, { credentials: FETCH_CREDENTIALS });
       if (res.ok) apiOrders = await res.json();
     } else if (phone) {
-      const res = await fetch(`${API_BASE}/orders?phone=${encodeURIComponent(phone)}`);
+      const res = await fetch(`${API_BASE}/orders?phone=${encodeURIComponent(phone)}`, { credentials: FETCH_CREDENTIALS });
       if (res.ok) apiOrders = await res.json();
     }
   } catch (err) {
@@ -1698,7 +1706,8 @@ async function performCustomerLogout() {
   try {
     await fetch(`${API_BASE}/auth/logout`, {
       method: "POST",
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: FETCH_CREDENTIALS
     });
   } catch (err) {}
 

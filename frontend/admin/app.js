@@ -1,5 +1,8 @@
 const API_BASE = window.location.origin.startsWith('http') ? `${window.location.origin}/api` : "http://127.0.0.1:8000/api";
 
+// All fetch calls must include credentials for cookie-based auth
+const FETCH_CREDENTIALS = 'same-origin';
+
 // --- JWT Authentication Helpers (shared with frontend/app.js) ---
 function getAuthToken() {
   return '';
@@ -20,6 +23,7 @@ async function refreshAccessToken() {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: FETCH_CREDENTIALS,
       body: JSON.stringify({ refresh_token: '' })
     });
     if (res.ok) {
@@ -36,6 +40,7 @@ async function authFetch(url, options = {}) {
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
   options.headers = headers;
+  options.credentials = options.credentials || FETCH_CREDENTIALS;
 
   let response = await fetch(url, options);
 
@@ -336,6 +341,7 @@ function clearAuthToken() {
         const res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: FETCH_CREDENTIALS,
           body: JSON.stringify({ email_or_phone, password })
         });
 
@@ -414,7 +420,7 @@ function clearAuthToken() {
     }
 
     function adminLogout() {
-      fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: FETCH_CREDENTIALS });
       localStorage.removeItem('sheland_user_data');
       location.reload();
     }
@@ -539,7 +545,7 @@ function clearAuthToken() {
 
     async function loadAdminProducts() {
       try {
-        const res = await fetch(`${API_BASE}/products`);
+        const res = await fetch(`${API_BASE}/products`, { credentials: FETCH_CREDENTIALS });
         if (res.ok) {
           const data = await res.json();
           adminProducts = (Array.isArray(data) && data.length > 0) ? data : FALLBACK_ADMIN_PRODUCTS;
@@ -1542,7 +1548,7 @@ function clearAuthToken() {
           headers: getAuthHeaders()
         });
         if (!res.ok) {
-          res = await fetch(`${API_BASE}/payments/methods`);
+          res = await fetch(`${API_BASE}/payments/methods`, { credentials: FETCH_CREDENTIALS });
         }
         if (res.ok) {
           const data = await res.json();

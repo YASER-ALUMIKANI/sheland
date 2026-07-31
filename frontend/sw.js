@@ -1,5 +1,6 @@
-// Sheland PWA Offline Service Worker
-const CACHE_NAME = 'sheland-pwa-v4';
+// Sheland PWA Offline Service Worker - v5
+// Fixed: Never cache API responses, only cache static assets
+const CACHE_NAME = 'sheland-pwa-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -32,9 +33,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+
+  // NEVER cache API requests - always go to network
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Static assets: cache-first
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -42,8 +53,8 @@ self.addEventListener('fetch', event => {
           });
         }
         return response;
-      })
-      .catch(() => caches.match(event.request))
+      });
+    }).catch(() => caches.match(event.request))
   );
 });
 
