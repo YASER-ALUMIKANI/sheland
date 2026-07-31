@@ -16,6 +16,8 @@ from . import models
 
 import secrets
 import logging
+import time
+import hashlib
 
 logger = logging.getLogger("sheland.auth")
 
@@ -54,19 +56,65 @@ else:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours (1 day expiration)
 
-# In-memory & Cache-backed Token Blacklist / Revocation
-_token_blacklist = set()
+# ponytail: Redis-backed token revocation with local memory TTL fallback & hashing
+_token_blacklist = {}  # {token_hash: expire_at_timestamp}
 
-def revoke_token(token: str) -> bool:
-    """Revoke/blacklist a JWT token (e.g. on logout or security invalidation)."""
-    if token:
-        _token_blacklist.add(token)
-        return True
-    return False
+def _token_hash(token: str) -> str:
+    """Create a short sha256 hash of the token for compact key storage."""
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()[:32]
+
+def revoke_token(token: str, expire_seconds: int = ACCESS_TOKEN_EXPIRE_MINUTES * 60) -> bool:
+    """Revoke/blacklist a JWT token via Redis with local memory TTL fallback."""
+    if not token:
+        return False
+    
+    token_hash = _token_hash(token)
+    redis_key = f"jwt_bl:{token_hash}"
+    expire_at = time.time() + expire_seconds
+    
+    # Store in Redis with TTL
+    try:
+        from .cache import get_redis_client
+        client = get_redis_client()
+        if client:
+            client.setex(redis_key, expire_seconds, "1")
+            logger.info(f"Token revoked and stored in Redis: {token_hash[:8]}...")
+    except Exception as e:
+        logger.warning(f"Redis token revocation failed, falling back to memory: {e}")
+
+    # Fallback to local memory dictionary with TTL
+    _token_blacklist[token_hash] = expire_at
+    logger.info(f"Token revoked in local memory: {token_hash[:8]}...")
+    return True
 
 def is_token_revoked(token: str) -> bool:
-    """Check if a JWT token has been revoked/blacklisted."""
-    return token in _token_blacklist
+    """Check if a JWT token has been revoked/blacklisted in Redis or local memory."""
+    if not token:
+        return False
+    
+    token_hash = _token_hash(token)
+    redis_key = f"jwt_bl:{token_hash}"
+    
+    # Check Redis first
+    try:
+        from .cache import get_redis_client
+        client = get_redis_client()
+        if client:
+            if client.exists(redis_key):
+                return True
+    except Exception as e:
+        logger.warning(f"Redis token blacklist check failed, falling back to memory: {e}")
+
+    # Check local fallback dictionary with TTL expiration
+    now = time.time()
+    if token_hash in _token_blacklist:
+        expire_at = _token_blacklist[token_hash]
+        if expire_at > now:
+            return True
+        else:
+            del _token_blacklist[token_hash]
+            
+    return False
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 

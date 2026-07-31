@@ -3,6 +3,7 @@ CityLand Backend - Unit Tests for JWT Authentication & Password Hashing
 # ponytail: Clean, compact pytest test suite for auth functionality
 """
 import pytest
+from unittest.mock import patch, MagicMock
 from backend import auth
 
 def test_hash_and_verify_password():
@@ -121,5 +122,28 @@ def test_token_revocation_and_logout(client):
 def test_historical_leaked_secret_is_in_weak_secrets():
     leaked_key = "c3f19e48710ab52d96c4a8f3e271b05a7d91e84239f60e1d8a3b5c7e9f0a2b4c"
     assert leaked_key in auth.WEAK_SECRETS
+
+def test_token_hash_short_sha256():
+    token = "example.jwt.token.string"
+    token_hash = auth._token_hash(token)
+    assert len(token_hash) == 32
+    assert token_hash == auth._token_hash(token)
+
+def test_token_revocation_memory_fallback():
+    with patch("backend.cache.get_redis_client", return_value=None):
+        token = auth.create_access_token({"sub": "999", "role": "customer"})
+        assert auth.is_token_revoked(token) is False
+        assert auth.revoke_token(token) is True
+        assert auth.is_token_revoked(token) is True
+
+def test_token_revocation_redis_mock():
+    mock_redis = MagicMock()
+    mock_redis.exists.return_value = True
+    with patch("backend.cache.get_redis_client", return_value=mock_redis):
+        token = auth.create_access_token({"sub": "888", "role": "admin"})
+        assert auth.revoke_token(token) is True
+        mock_redis.setex.assert_called_once()
+        assert auth.is_token_revoked(token) is True
+
 
 
