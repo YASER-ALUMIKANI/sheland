@@ -1658,15 +1658,18 @@ async function populateAccountProfileFields() {
     } catch (e) {}
   }
 
-  try {
-    const res = await authFetch(`${API_BASE}/auth/me`);
-    if (res.ok) {
-      const u = await res.json();
-      if (u.name) {
-        savedName = u.name;
-        localStorage.setItem('sheland_user_name', u.name);
-      }
-      if (u.phone) {
+  const hasSession = getUser() || localStorage.getItem('sheland_user_phone') || localStorage.getItem('sheland_user_id');
+
+  if (hasSession) {
+    try {
+      const res = await authFetch(`${API_BASE}/auth/me`);
+      if (res.ok) {
+        const u = await res.json();
+        if (u.name) {
+          savedName = u.name;
+          localStorage.setItem('sheland_user_name', u.name);
+        }
+        if (u.phone) {
           savedPhone = u.phone;
           localStorage.setItem('sheland_user_phone', u.phone);
         }
@@ -1677,6 +1680,7 @@ async function populateAccountProfileFields() {
     } catch (err) {
       console.log("Could not refresh user profile from server", err);
     }
+  }
 
   if (document.getElementById('accCustName')) document.getElementById('accCustName').value = savedName;
   if (document.getElementById('accCustPhone')) document.getElementById('accCustPhone').value = savedPhone;
