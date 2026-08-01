@@ -662,8 +662,7 @@ function setReviewStar(n) {
 }
 
 async function pickReviewPhoto() {
-  const token = getAuthToken();
-  if (!token) {
+  if (!getUser()) {
     showToast('🔒 يرجى تسجيل الدخول أولاً لإرفاق صورة التقييم.', 'warning', '🔐');
     openAccountModal();
     return;
@@ -731,8 +730,7 @@ async function verifyOrderForReview() {
 async function submitProductReview() {
   if (!currentModalProduct) return;
 
-  const token = getAuthToken();
-  if (!token) {
+  if (!getUser()) {
     showToast('يجب تسجيل الدخول أولاً لإضافة تقييم.', 'danger', '⚠️');
     if (typeof openAuthModal === 'function') openAuthModal();
     return;
