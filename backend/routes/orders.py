@@ -90,11 +90,16 @@ def update_parcel_details(
 
 
 @router.get("/api/orders/track/{order_number}", response_model=schemas.OrderResponse)
-def track_order(order_number: str, db: Session = Depends(get_db)):
-
+def track_order(
+    order_number: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_current_user),
+):
     order = db.query(models.Order).filter(models.Order.order_number == order_number.upper()).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    if current_user.role not in ("admin", "super_admin", "sales_manager") and order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="غير مصرح: ليس لديك صلاحية تتبع هذا الطلب")
     return order
 
 
