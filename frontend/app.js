@@ -217,8 +217,10 @@ let allProducts = [...LOCAL_PRODUCTS_SEED];
 
 
 let filteredProducts = [...LOCAL_PRODUCTS_SEED];
-let cart = JSON.parse(localStorage.getItem('sheland_cart') || '[]');
-let wishlist = JSON.parse(localStorage.getItem('sheland_wishlist') || '[]');
+let cart = [];
+try { cart = JSON.parse(localStorage.getItem('sheland_cart')) || []; } catch(e) { cart = []; }
+let wishlist = [];
+try { wishlist = JSON.parse(localStorage.getItem('sheland_wishlist')) || []; } catch(e) { wishlist = []; }
 
 let selectedCategoryId = null;
 let currentModalProduct = null;
@@ -1675,7 +1677,6 @@ async function populateAccountProfileFields() {
     } catch (err) {
       console.log("Could not refresh user profile from server", err);
     }
-  }
 
   if (document.getElementById('accCustName')) document.getElementById('accCustName').value = savedName;
   if (document.getElementById('accCustPhone')) document.getElementById('accCustPhone').value = savedPhone;

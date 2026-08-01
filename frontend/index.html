@@ -784,31 +784,6 @@
     </div>
   </footer>
 
-  <!-- Mobile Bottom Navigation -->
-
-  <nav class="mobile-bottom-nav">
-    <a href="#" class="mobile-nav-item active" onclick="filterByCategory(null)">
-      <span class="mobile-nav-icon">🏠</span>
-      <span>الرئيسية</span>
-    </a>
-    <a href="#productGridSection" class="mobile-nav-item" onclick="filterByCategory(1)">
-      <span class="mobile-nav-icon">📂</span>
-      <span>الفئات</span>
-    </a>
-    <a href="#" class="mobile-nav-item" onclick="toggleWishlistModal()">
-      <span class="mobile-nav-icon">❤️</span>
-      <span>المفضلة</span>
-    </a>
-    <a href="#" class="mobile-nav-item" onclick="toggleCartDrawer()">
-      <span class="mobile-nav-icon">🛒</span>
-      <span>السلة</span>
-    </a>
-    <a href="#" class="mobile-nav-item" onclick="openAccountModal()">
-      <span class="mobile-nav-icon">👤</span>
-      <span>حسابي</span>
-    </a>
-  </nav>
-
   <!-- Customer Account & Profile Settings Modal -->
   <div class="modal-overlay" id="accountModal">
     <div class="modal-card" style="max-width: 620px;">
@@ -961,15 +936,19 @@
     </div>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar -->
+  <!-- Mobile Bottom Navigation Bar (merged) -->
   <nav class="mobile-bottom-nav">
-    <a href="#" class="mobile-nav-item active" onclick="resetSearch()">
+    <a href="#" class="mobile-nav-item active" onclick="filterByCategory(null)">
       <span class="mobile-nav-icon">🏠</span>
       <span>الرئيسية</span>
     </a>
-    <a href="#productGridSection" class="mobile-nav-item" onclick="document.getElementById('searchInput').focus()">
-      <span class="mobile-nav-icon">🔍</span>
-      <span>البحث</span>
+    <a href="#productGridSection" class="mobile-nav-item" onclick="filterByCategory(1)">
+      <span class="mobile-nav-icon">📂</span>
+      <span>الفئات</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="toggleWishlistModal()">
+      <span class="mobile-nav-icon">❤️</span>
+      <span>المفضلة</span>
     </a>
     <a href="#" class="mobile-nav-item" onclick="openAccountModal()">
       <span class="mobile-nav-icon">👤</span>
