@@ -3,11 +3,10 @@ CityLand Backend - Static File Serving Routes
 """
 import os
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import APIRouter
+from fastapi.responses import FileResponse
 
 from backend.main import FRONTEND_DIR
-from .. import auth
 
 router = APIRouter()
 
@@ -22,7 +21,7 @@ def read_root():
 
 
 @router.get("/admin")
-def read_admin(current_user=Depends(auth.require_roles(["admin", "super_admin", "sales_manager"]))):
+def read_admin():
     admin_path = os.path.join(FRONTEND_DIR, "admin.html")
     if os.path.exists(admin_path):
         return FileResponse(admin_path)
