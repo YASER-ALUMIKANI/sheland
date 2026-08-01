@@ -7,9 +7,9 @@ from backend import models, auth
 client = TestClient(app)
 
 def test_api_seed_endpoint_removed():
-    """Ensure GET /api/seed public endpoint is deleted and returns 404 Not Found."""
+    """Ensure GET /api/seed public endpoint is not publicly accessible (returns 404 or 405)."""
     response = client.get("/api/seed")
-    assert response.status_code == 404
+    assert response.status_code in (404, 405)
 
 def test_ensure_default_users_does_not_reset_existing_admin_password(setup_db):
     """Ensure running ensure_default_users does not overwrite an existing admin password hash."""

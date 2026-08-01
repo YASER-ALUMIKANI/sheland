@@ -465,7 +465,14 @@
     function vendorLogout() {
       fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       localStorage.removeItem('sheland_user_data');
-      location.reload();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (const reg of regs) { reg.unregister(); }
+          setTimeout(() => location.reload(), 600);
+        });
+      } else {
+        location.reload();
+      }
     }
 
     document.addEventListener("DOMContentLoaded", checkVendorAuth);

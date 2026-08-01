@@ -79,7 +79,14 @@ function clearAuthToken() {
   fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   localStorage.removeItem('sheland_user_data');
   showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
-  setTimeout(() => location.reload(), 800);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      for (const reg of regs) { reg.unregister(); }
+      setTimeout(() => location.reload(), 800);
+    });
+  } else {
+    setTimeout(() => location.reload(), 800);
+  }
 }
 
 // --- Admin Dashboard Constants ---
@@ -422,7 +429,14 @@ function clearAuthToken() {
     function adminLogout() {
   fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: FETCH_CREDENTIALS });
       localStorage.removeItem('sheland_user_data');
-      location.reload();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (const reg of regs) { reg.unregister(); }
+          setTimeout(() => location.reload(), 600);
+        });
+      } else {
+        location.reload();
+      }
     }
 
     async function initAdminUI() {

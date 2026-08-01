@@ -1,6 +1,6 @@
-// Sheland PWA Offline Service Worker - v5
+// Sheland PWA Offline Service Worker - v7
 // Fixed: Never cache API responses, only cache static assets
-const CACHE_NAME = 'sheland-pwa-v6';
+const CACHE_NAME = 'sheland-pwa-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

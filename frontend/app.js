@@ -36,7 +36,14 @@ function clearAuthToken() {
   localStorage.removeItem('sheland_user_phone');
   localStorage.removeItem('sheland_user_id');
   showToast("تم تسجيل الخروج بنجاح", 'info', '🔒');
-  setTimeout(() => location.reload(), 800);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      for (const reg of regs) { reg.unregister(); }
+      setTimeout(() => location.reload(), 800);
+    });
+  } else {
+    setTimeout(() => location.reload(), 800);
+  }
 }
 
 let isRefreshingToken = false;
@@ -1726,6 +1733,12 @@ async function performCustomerLogout() {
 
   showToast("تم تسجيل الخروج  بنجاح! 🚪", 'info', '🔒');
   closeAccountModal();
+
+  // Unregister SW before reload to prevent stale cached app.js from causing login issues
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) { await reg.unregister(); }
+  }
   setTimeout(() => location.reload(), 600);
 }
 
