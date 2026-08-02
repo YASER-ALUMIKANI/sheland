@@ -111,6 +111,23 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https://images.unsplash.com https://*.unsplash.com; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), "
+        "payment=(), usb=(), magnetometer=(), gyroscope=(), "
+        "accelerometer=(), autoplay=(), encrypted-media=(), "
+        "fullscreen=(self), picture-in-picture=(self)"
+    )
     return response
 
 
