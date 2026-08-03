@@ -1407,14 +1407,15 @@ function clearAuthToken() {
 
       try {
         let res;
+        // ponytail: Use authFetch to automatically attach X-Requested-With CSRF header and session credentials
         if (editId) {
-          res = await fetch(`${API_BASE}/products/${editId}`, {
+          res = await authFetch(`${API_BASE}/products/${editId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
         } else {
-          res = await fetch(`${API_BASE}/products`, {
+          res = await authFetch(`${API_BASE}/products`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1438,7 +1439,8 @@ function clearAuthToken() {
       if (!confirm("هل أنت تأكد من رغبتك في حذف هذا المنتج من المنصة؟")) return;
 
       try {
-        const res = await fetch(`${API_BASE}/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+        // ponytail: Use authFetch for CSRF header and session credentials
+        const res = await authFetch(`${API_BASE}/products/${id}`, { method: "DELETE" });
         if (res.ok) {
           alert("تم حذف المنتج بنجاح!");
           loadAdminProducts();
