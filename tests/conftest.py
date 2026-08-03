@@ -23,12 +23,16 @@ engine = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+import threading
+db_lock = threading.Lock()
+
 def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    with db_lock:
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
 @pytest.fixture(autouse=True)
 def setup_db():

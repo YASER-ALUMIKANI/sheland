@@ -9,23 +9,27 @@ from backend import auth, models
 def create_user_and_get_token(name: str, email: str, role: str) -> str:
     """Helper to create a user in DB and return JWT bearer token."""
     db = TestingSessionLocal()
-    user = models.User(
-        name=name,
-        email=email,
-        phone="0770000000",
-        password_hash=auth.hash_password("password123"),
-        role=role
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        user = models.User(
+            name=name,
+            email=email,
+            phone="0770000000",
+            password_hash=auth.hash_password("password123"),
+            role=role
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     
     if role == "seller":
-        seller = models.Seller(user_id=user.id, store_name=f"متجر {name}")
-        db.add(seller)
-        db.commit()
+        seller = db.query(models.Seller).filter(models.Seller.user_id == user.id).first()
+        if not seller:
+            seller = models.Seller(user_id=user.id, store_name=f"متجر {name}")
+            db.add(seller)
+            db.commit()
 
-    token = auth.create_access_token({"sub": str(user.id), "role": role})
+    token = auth.create_access_token({"sub": str(user.id), "role": user.role})
     db.close()
     return token
 
@@ -72,11 +76,12 @@ def test_customer_forbidden_on_create_product(client):
 
 # --- 3. Seller Role Tests ---
 def test_seller_can_create_product(client):
-    # First seed category 1
     db = TestingSessionLocal()
-    cat = models.Category(id=1, name_ar="نساء", name_en="Women", slug="women")
-    db.add(cat)
-    db.commit()
+    cat = db.query(models.Category).filter(models.Category.id == 1).first()
+    if not cat:
+        cat = models.Category(id=1, name_ar="نساء", name_en="Women", slug="women-rbac-1")
+        db.add(cat)
+        db.commit()
     db.close()
 
     token = create_user_and_get_token("تاجر 1", "seller1@sheland.com", "seller")
@@ -113,28 +118,39 @@ def test_sales_manager_can_access_admin_analytics(client):
 
 # --- 5. Admin & Super Admin Role Tests ---
 def test_admin_can_access_analytics_and_delete_product(client):
-    # Seed category and product
     db = TestingSessionLocal()
-    cat = models.Category(id=1, name_ar="نساء", name_en="Women", slug="women")
-    seller_user = models.User(name="S", email="s@s.com", password_hash="h", role="seller")
-    db.add_all([cat, seller_user])
-    db.commit()
-    seller = models.Seller(user_id=seller_user.id, store_name="S")
-    db.add(seller)
-    db.commit()
+    cat = db.query(models.Category).filter(models.Category.id == 1).first()
+    if not cat:
+        cat = models.Category(id=1, name_ar="نساء", name_en="Women", slug="women-rbac-2")
+        db.add(cat)
+        db.commit()
 
-    prod = models.Product(
-        id=99,
-        seller_id=seller.id,
-        category_id=cat.id,
-        title_ar="منتج لحذف",
-        title_en="Delete Me",
-        slug="del-me",
-        price=1000,
-        image_url="https://example.com/img.jpg"
-    )
-    db.add(prod)
-    db.commit()
+    seller_user = db.query(models.User).filter(models.User.email == "seller_del_test@sheland.com").first()
+    if not seller_user:
+        seller_user = models.User(name="S", email="seller_del_test@sheland.com", password_hash="h", role="seller")
+        db.add(seller_user)
+        db.commit()
+
+    seller = db.query(models.Seller).filter(models.Seller.user_id == seller_user.id).first()
+    if not seller:
+        seller = models.Seller(user_id=seller_user.id, store_name="S")
+        db.add(seller)
+        db.commit()
+
+    prod = db.query(models.Product).filter(models.Product.id == 99).first()
+    if not prod:
+        prod = models.Product(
+            id=99,
+            seller_id=seller.id,
+            category_id=cat.id,
+            title_ar="منتج لحذف",
+            title_en="Delete Me",
+            slug="del-me",
+            price=1000,
+            image_url="https://example.com/img.jpg"
+        )
+        db.add(prod)
+        db.commit()
     db.close()
 
     token = create_user_and_get_token("المدير العام", "admin@sheland.com", "admin")

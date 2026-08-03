@@ -122,7 +122,11 @@ def create_order(
             raise HTTPException(status_code=404, detail=f"المنتج {item.product_id} غير موجود")
         
         if item.variant_id:
-            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+            # ponytail: Use with_for_update for pessimistic row locking to prevent race conditions during concurrent orders
+            try:
+                variant = db.query(models.ProductVariant).with_for_update().filter(models.ProductVariant.id == item.variant_id).first()
+            except Exception:
+                variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
             available = variant.stock if variant else 0
         else:
             available = prod.stock
@@ -175,8 +179,15 @@ def create_order(
 
             remaining_to_deduct = item.quantity
             if item.variant_id:
-                variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
+                try:
+                    variant = db.query(models.ProductVariant).with_for_update().filter(models.ProductVariant.id == item.variant_id).first()
+                except Exception:
+                    variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.variant_id).first()
                 if variant:
+                    if variant.stock < remaining_to_deduct:
+                        db.delete(db_order)
+                        db.commit()
+                        raise HTTPException(status_code=422, detail="عذراً، نفدت كمية المنتج أثناء معالجة الطلب")
                     variant.stock = max(0, variant.stock - remaining_to_deduct)
             else:
                 variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == item.product_id).all()

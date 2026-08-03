@@ -48,10 +48,12 @@ def test_create_order_jwt_user_binding(db):
     token = auth.create_access_token(data={"sub": str(customer.id), "role": customer.role})
     
     # Create product & variant
-    cat = models.Category(name_ar="الكترونيات", name_en="Electronics", slug="electronics")
-    db.add(cat)
-    db.commit()
-    db.refresh(cat)
+    cat = db.query(models.Category).filter(models.Category.slug == "electronics").first()
+    if not cat:
+        cat = models.Category(name_ar="الكترونيات اختباري", name_en="Test Electronics", slug="electronics-test")
+        db.add(cat)
+        db.commit()
+        db.refresh(cat)
     
     prod = models.Product(seller_id=1, category_id=cat.id, title_ar="هاتف محمول", title_en="Phone", slug="phone", price=500.0, image_url="/uploads/test.jpg")
     db.add(prod)

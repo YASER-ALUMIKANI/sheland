@@ -128,6 +128,9 @@ def test_create_and_delete_product():
 
 
 def test_create_and_track_order():
+    token = _get_or_create_user()
+    headers = _auth(token) if token else {}
+
     products_res = client.get("/api/products")
     products = products_res.json()
     if not products:
@@ -141,13 +144,13 @@ def test_create_and_track_order():
         "payment_method": "COD",
         "items": [{"product_id": products[0]["id"], "quantity": 1}]
     }
-    res = client.post("/api/orders", json=order_payload)
+    res = client.post("/api/orders", json=order_payload, headers=headers)
     assert res.status_code == 200
     order_data = res.json()
     assert "order_number" in order_data
     order_num = order_data["order_number"]
 
-    track_res = client.get(f"/api/orders/track/{order_num}")
+    track_res = client.get(f"/api/orders/track/{order_num}", headers=headers)
     assert track_res.status_code == 200
     assert track_res.json()["order_number"] == order_num
 

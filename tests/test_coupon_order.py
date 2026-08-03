@@ -28,9 +28,9 @@ def test_order_creation_with_coupon(client):
         )
         db.add(variant)
         
-        # 2. Create a coupon: 20% discount
+        # 2. Create a unique coupon: 20% discount
         coupon = models.Coupon(
-            code="SAVE20",
+            code="TEST_SAVE20",
             discount_type="percent",
             discount_value=20.0,
             min_order_amount=5000.0,
@@ -45,7 +45,7 @@ def test_order_creation_with_coupon(client):
             "phone": "771234567",
             "shipping_address": "مدينة البيضاء",
             "payment_method": "COD",
-            "coupon_code": "SAVE20",
+            "coupon_code": "TEST_SAVE20",
             "items": [
                 {"product_id": prod.id, "variant_id": variant.id, "quantity": 1}
             ]
@@ -56,7 +56,7 @@ def test_order_creation_with_coupon(client):
         data = res.json()
 
         # Product price = 10000, 20% discount = 2000 => final total_amount = 8000
-        assert data["coupon_code"] == "SAVE20"
+        assert data["coupon_code"] == "TEST_SAVE20"
         assert data["discount_amount"] == 2000.0
         assert data["total_amount"] == 8000.0
     finally:
