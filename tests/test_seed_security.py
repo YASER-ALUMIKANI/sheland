@@ -37,3 +37,30 @@ def test_ensure_default_users_does_not_reset_existing_admin_password(setup_db):
         assert not auth.verify_password("admin123", admin.password_hash)
     finally:
         db.close()
+
+def test_ensure_default_users_uses_env_vars(monkeypatch, setup_db):
+    """Ensure ensure_default_users reads default passwords from environment variables when seeding."""
+    monkeypatch.setenv("ADMIN_DEFAULT_PASSWORD", "CustomEnvAdminPass2026!")
+    monkeypatch.setenv("SUPERADMIN_DEFAULT_PASSWORD", "CustomEnvSuperPass2026!")
+    monkeypatch.setenv("SELLER_DEFAULT_PASSWORD", "CustomEnvSellerPass2026!")
+
+    db = TestingSessionLocal()
+    try:
+        db.query(models.User).filter(models.User.email.in_([
+            "admin@sheland.com", "superadmin@sheland.com", "seller@sheland.com"
+        ])).delete(synchronize_session=False)
+        db.commit()
+
+        ensure_default_users(db)
+
+        admin = db.query(models.User).filter(models.User.email == "admin@sheland.com").first()
+        super_admin = db.query(models.User).filter(models.User.email == "superadmin@sheland.com").first()
+        seller = db.query(models.User).filter(models.User.email == "seller@sheland.com").first()
+
+        assert admin is not None and auth.verify_password("CustomEnvAdminPass2026!", admin.password_hash)
+        assert super_admin is not None and auth.verify_password("CustomEnvSuperPass2026!", super_admin.password_hash)
+        assert seller is not None and auth.verify_password("CustomEnvSellerPass2026!", seller.password_hash)
+    finally:
+        db.close()
+
+

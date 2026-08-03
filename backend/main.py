@@ -252,13 +252,18 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 def ensure_default_users(db: Session):
     """Ensures Admin, Super Admin & Seller default accounts exist with valid bcrypt password hashes without overwriting existing passwords."""
+    # ponytail: Read default seed passwords from environment variables with fallback defaults
+    super_admin_pass = os.getenv("SUPERADMIN_DEFAULT_PASSWORD", "superadmin123")
+    admin_pass = os.getenv("ADMIN_DEFAULT_PASSWORD", "admin123")
+    seller_pass = os.getenv("SELLER_DEFAULT_PASSWORD", "seller123")
+
     super_admin = db.query(models.User).filter(models.User.email == "superadmin@sheland.com").first()
     if not super_admin:
         super_admin = models.User(
             name="المدير الفائق",
             email="superadmin@sheland.com",
             phone="0770000001",
-            password_hash=auth.hash_password("superadmin123"),
+            password_hash=auth.hash_password(super_admin_pass),
             role="super_admin"
         )
         db.add(super_admin)
@@ -270,7 +275,7 @@ def ensure_default_users(db: Session):
             name="مدير منصة شي لاند",
             email="admin@sheland.com",
             phone="0770000000",
-            password_hash=auth.hash_password("admin123"),
+            password_hash=auth.hash_password(admin_pass),
             role="admin"
         )
         db.add(admin)
@@ -282,7 +287,7 @@ def ensure_default_users(db: Session):
             name="متجر شي لاند الرسمي",
             email="seller@sheland.com",
             phone="0771111111",
-            password_hash=auth.hash_password("seller123"),
+            password_hash=auth.hash_password(seller_pass),
             role="seller"
         )
         db.add(seller_user)
