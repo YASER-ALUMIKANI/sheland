@@ -441,6 +441,7 @@ def create_product(
 
     db.commit()
     db.refresh(db_product)
+    cache.clear_cache_by_prefix("cache:")
     return schemas.ProductResponse.from_orm_with_stock(db_product)
 
 
@@ -475,14 +476,17 @@ def update_product(
 
     p_stock = getattr(product_in, 'stock', None)
     if p_stock is not None:
-        first_variant = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).first()
-        if first_variant:
-            first_variant.stock = p_stock
+        variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).all()
+        if variants:
+            variants[0].stock = p_stock
+            for v in variants[1:]:
+                v.stock = 0
         else:
             db.add(models.ProductVariant(product_id=product_id, sku=f"SKU-{product_id}", stock=p_stock))
 
     db.commit()
     db.refresh(db_product)
+    cache.clear_cache_by_prefix("cache:")
     return schemas.ProductResponse.from_orm_with_stock(db_product)
 
 
@@ -498,6 +502,7 @@ def delete_product(
 
     db.delete(db_product)
     db.commit()
+    cache.clear_cache_by_prefix("cache:")
     return {"status": "success", "message": f"Product {product_id} deleted"}
 
 
