@@ -88,6 +88,10 @@ async function refreshAccessToken() {
 async function authFetch(url, options = {}) {
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
+  const token = localStorage.getItem('sheland_access_token');
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   options.headers = headers;
   options.credentials = options.credentials || FETCH_CREDENTIALS;
 
@@ -100,6 +104,8 @@ async function authFetch(url, options = {}) {
       isRefreshingToken = false;
 
       if (newToken) {
+        localStorage.setItem('sheland_access_token', newToken);
+        headers['Authorization'] = `Bearer ${newToken}`;
         onRefreshed(newToken);
         return fetch(url, options);
       } else {
@@ -109,6 +115,10 @@ async function authFetch(url, options = {}) {
     } else {
       return new Promise((resolve) => {
         subscribeTokenRefresh((newToken) => {
+          if (newToken) {
+            localStorage.setItem('sheland_access_token', newToken);
+            headers['Authorization'] = `Bearer ${newToken}`;
+          }
           resolve(fetch(url, options));
         });
       });
@@ -1431,14 +1441,16 @@ async function handleCustomerLogin(e) {
 
     if (res.ok) {
       const data = await res.json();
+      if (data.access_token) localStorage.setItem('sheland_access_token', data.access_token);
       localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
       localStorage.setItem('sheland_user_name', data.user.name);
       if (data.user.id) localStorage.setItem('sheland_user_id', data.user.id);
       if (data.user.phone) localStorage.setItem('sheland_user_phone', data.user.phone);
 
       showToast(`مرحباً بك مجدداً ${data.user.name} 👋`, 'success', '🔑');
+      populateAccountProfileFields();
       switchAccountSubTab('orders');
-      fetchAccountOrdersByPhone();
+      await fetchAccountOrdersByPhone();
       return;
     }
   } catch (err) {}
@@ -1722,6 +1734,7 @@ async function performCustomerLogout() {
   } catch (err) {}
 
   // Wipe all customer session data completely
+  localStorage.removeItem('sheland_access_token');
   localStorage.removeItem('sheland_user_data');
   localStorage.removeItem('sheland_user_name');
   localStorage.removeItem('sheland_user_phone');

@@ -39,6 +39,10 @@ async function refreshAccessToken() {
 async function authFetch(url, options = {}) {
   const headers = options.headers || {};
   headers['X-Requested-With'] = 'XMLHttpRequest';
+  const token = localStorage.getItem('sheland_access_token');
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   options.headers = headers;
   options.credentials = options.credentials || FETCH_CREDENTIALS;
 
@@ -50,12 +54,18 @@ async function authFetch(url, options = {}) {
       const newToken = await refreshAccessToken();
       isRefreshingToken = false;
       if (newToken) {
+        localStorage.setItem('sheland_access_token', newToken);
+        headers['Authorization'] = `Bearer ${newToken}`;
         onRefreshed(newToken);
         return fetch(url, options);
       }
     } else {
       return new Promise((resolve) => {
         subscribeTokenRefresh((newToken) => {
+          if (newToken) {
+            localStorage.setItem('sheland_access_token', newToken);
+            headers['Authorization'] = `Bearer ${newToken}`;
+          }
           resolve(fetch(url, options));
         });
       });
@@ -355,14 +365,15 @@ function clearAuthToken() {
         if (res.ok) {
           const data = await res.json();
           if (['admin', 'super_admin', 'sales_manager'].includes(data.user.role)) {
+            if (data.access_token) localStorage.setItem('sheland_access_token', data.access_token);
             localStorage.setItem('sheland_user_data', JSON.stringify(data.user));
             hideAdminLoginModal();
             if (document.getElementById('adminUserDisplay')) {
               document.getElementById('adminUserDisplay').innerText = `👤 ${data.user.name} (${data.user.role})`;
             }
-            loadAdminProducts();
-            loadAdminOrders();
-            loadAdminKPIs();
+            await loadAdminProducts();
+            await loadAdminOrders();
+            await loadAdminKPIs();
             return;
           } else {
             if (errBox) {
