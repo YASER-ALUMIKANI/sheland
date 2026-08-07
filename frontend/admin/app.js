@@ -199,12 +199,23 @@ function clearAuthToken() {
           tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">لا توجد كوبونات مضافة بعد. أنشئ أول كوبون خصم أعلاه.</td></tr>';
           return;
         }
-        tbody.innerHTML = coupons.map(c => `
+        tbody.innerHTML = coupons.map(c => {
+          let expiresText = '♾️ دائم (بدون انتهاء)';
+          if (c.expires_at) {
+            const expDate = new Date(c.expires_at);
+            const isExpired = expDate < new Date();
+            expiresText = `<span style="color:${isExpired ? '#D83A3A' : '#333'}; font-weight:${isExpired ? '800' : 'normal'};">
+              ${expDate.toLocaleDateString('ar-YE')} ${isExpired ? ' (⏳ منتهي)' : ''}
+            </span>`;
+          }
+          return `
           <tr>
             <td><b style="font-size:14px; letter-spacing:1px; color:var(--primary-dark);">${escapeAdminHTML(c.code)}</b></td>
             <td>${c.discount_type === 'percent' ? '📊 نسبة مئوية' : '💰 مبلغ ثابت'}</td>
             <td><b>${c.discount_type === 'percent' ? c.discount_value + '%' : c.discount_value + ' ر.ي'}</b></td>
             <td>${c.min_order_amount > 0 ? c.min_order_amount + ' ر.ي' : 'بدون حد أدنى'}</td>
+            <td><b>${c.used_count || 0}</b> / <span style="color:#666;">${c.max_uses ? c.max_uses : 'غير محدود'}</span></td>
+            <td>${expiresText}</td>
             <td>
               <span style="background:${c.is_active ? 'var(--success)' : '#999'};color:white;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800;">
                 ${c.is_active ? '✅ نشط' : '⏸️ موقوف'}
@@ -214,9 +225,9 @@ function clearAuthToken() {
               <button onclick="deleteAdminCoupon(${c.id})" style="background:#D83A3A;color:white;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">🗑️ حذف</button>
             </td>
           </tr>
-        `).join('');
+        `;}).join('');
       } catch {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D83A3A;">خطأ في الاتصال بالسيرفر</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#D83A3A;">خطأ في الاتصال بالسيرفر</td></tr>';
       }
     }
 
@@ -225,6 +236,10 @@ function clearAuthToken() {
       const type = document.getElementById('newCouponType')?.value || 'percent';
       const value = parseFloat(document.getElementById('newCouponValue')?.value || 0);
       const minAmt = parseFloat(document.getElementById('newCouponMin')?.value || 0);
+      const maxUsesVal = document.getElementById('newCouponMaxUses')?.value;
+      const maxUses = maxUsesVal && parseInt(maxUsesVal, 10) > 0 ? parseInt(maxUsesVal, 10) : null;
+      const expiresAtVal = document.getElementById('newCouponExpiresAt')?.value;
+      const expiresAt = expiresAtVal ? new Date(expiresAtVal + 'T23:59:59Z').toISOString() : null;
 
       if (!code || !value || value <= 0) {
         showAdminToast('يرجى إدخال رمز الكوبون وقيمة الخصم.', 'error'); return;
@@ -237,13 +252,15 @@ function clearAuthToken() {
         const res = await fetch(`${API_BASE}/coupons`, {
           method: 'POST',
           headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, discount_type: type, discount_value: value, min_order_amount: minAmt })
+          body: JSON.stringify({ code, discount_type: type, discount_value: value, min_order_amount: minAmt, max_uses: maxUses, expires_at: expiresAt })
         });
         if (res.ok) {
           showAdminToast(`✅ تم إنشاء الكوبون (${code}) بنجاح!`, 'success');
           document.getElementById('newCouponCode').value = '';
           document.getElementById('newCouponValue').value = '';
           document.getElementById('newCouponMin').value = '';
+          document.getElementById('newCouponMaxUses').value = '';
+          if (document.getElementById('newCouponExpiresAt')) document.getElementById('newCouponExpiresAt').value = '';
           loadAdminCoupons();
         } else {
           const err = await res.json();

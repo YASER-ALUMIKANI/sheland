@@ -205,11 +205,15 @@ def create_order(
         code_upper = order_in.coupon_code.strip().upper()
         coupon = db.query(models.Coupon).filter(models.Coupon.code == code_upper, models.Coupon.is_active == True).first()
         if coupon and total >= coupon.min_order_amount:
-            applied_coupon_code = coupon.code
-            if coupon.discount_type == "percent":
-                discount = round(total * (coupon.discount_value / 100.0), 2)
-            elif coupon.discount_type == "fixed":
-                discount = min(total, coupon.discount_value)
+            is_not_expired = not (coupon.expires_at and datetime.utcnow() > coupon.expires_at)
+            has_remaining_uses = (coupon.max_uses is None or coupon.used_count < coupon.max_uses)
+            if is_not_expired and has_remaining_uses:
+                applied_coupon_code = coupon.code
+                if coupon.discount_type == "percent":
+                    discount = round(total * (coupon.discount_value / 100.0), 2)
+                elif coupon.discount_type == "fixed":
+                    discount = min(total, coupon.discount_value)
+                coupon.used_count = (coupon.used_count or 0) + 1
 
     final_net_total = max(0.0, round(total - discount, 2))
 

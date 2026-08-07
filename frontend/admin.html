@@ -363,16 +363,24 @@
                 <input type="number" id="newCouponValue" placeholder="10" min="1" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px;">
               <div>
-                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">الحد الأدنى للطلب (ر.ي)</label>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">الحد الأدنى (ر.ي)</label>
                 <input type="number" id="newCouponMin" placeholder="0" min="0" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
               </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">أقصى استخدام</label>
+                <input type="number" id="newCouponMaxUses" placeholder="غير محدود" min="1" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; display:block; margin-bottom:4px;">تاريخ الانتهاء</label>
+                <input type="date" id="newCouponExpiresAt" style="width:100%; padding:8px; border-radius:6px; border:1px solid #CCC; font-size:13px; box-sizing:border-box;">
+              </div>
               <div style="display:flex; align-items:flex-end;">
-                <button onclick="createAdminCoupon()" style="background: var(--success); color: white; padding: 9px 20px; border-radius: 8px; font-weight: 800; font-size: 13px; width:100%;">✔ إنشاء الكوبون</button>
+                <button onclick="createAdminCoupon()" style="background: var(--success); color: white; padding: 9px 15px; border-radius: 8px; font-weight: 800; font-size: 13px; width:100%;">✔ إنشاء الكوبون</button>
               </div>
             </div>
-            <p style="font-size: 11px; color: #888; margin: 0;">مثال: رمز <b>SHELAND10</b> بنسبة 10% — يُطبَّق عند الوصول للحد الأدنى المحدد.</p>
+            <p style="font-size: 11px; color: #888; margin: 0;">مثال: رمز <b>SHELAND10</b> بنسبة 10% — يمكن تحديد حد أدنى، أقصى مرات استخدام، وتاريخ انتهاء الصلاحية.</p>
           </div>
         </div>
 
@@ -385,12 +393,14 @@
                 <th>نوع الخصم</th>
                 <th>قيمة الخصم</th>
                 <th>الحد الأدنى</th>
+                <th>الاستخدامات</th>
+                <th>تاريخ الانتهاء</th>
                 <th>الحالة</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
             <tbody id="adminCouponsTableBody">
-              <tr><td colspan="6" style="text-align:center; color:#888;">جاري التحميل...</td></tr>
+              <tr><td colspan="8" style="text-align:center; color:#888;">جاري التحميل...</td></tr>
             </tbody>
           </table>
         </div>

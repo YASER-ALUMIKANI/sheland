@@ -228,9 +228,12 @@ class CouponCreate(BaseModel):
     discount_type: str = "percent"
     discount_value: float
     min_order_amount: float = 0.0
+    max_uses: Optional[int] = None
+    expires_at: Optional[datetime] = None
 
 class CouponResponse(CouponCreate):
     id: int
+    used_count: int = 0
     is_active: bool
 
     class Config:

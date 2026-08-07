@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models, schemas, auth
 
+from datetime import datetime
+
 router = APIRouter()
 
 
@@ -24,6 +26,12 @@ def validate_coupon(code: str = Query(...), total: float = Query(...), db: Sessi
     coupon = db.query(models.Coupon).filter(models.Coupon.code == code.upper(), models.Coupon.is_active == True).first()
     if not coupon:
         raise HTTPException(status_code=404, detail="رمز الكوبون غير صحيح أو منتهي الصلاحية")
+
+    if coupon.expires_at and datetime.utcnow() > coupon.expires_at:
+        raise HTTPException(status_code=400, detail="رمز الكوبون منتهي الصلاحية")
+
+    if coupon.max_uses is not None and coupon.used_count >= coupon.max_uses:
+        raise HTTPException(status_code=400, detail="تم تجاوز الحد الأقصى لعدد مرات استخدام هذا الكوبون")
 
     if total < coupon.min_order_amount:
         raise HTTPException(status_code=400, detail=f"الكوبون يتطلب أدنى قيمة طلب {coupon.min_order_amount} ر.س")
@@ -58,6 +66,8 @@ def create_coupon(
         discount_type=coupon_in.discount_type,
         discount_value=coupon_in.discount_value,
         min_order_amount=coupon_in.min_order_amount,
+        max_uses=coupon_in.max_uses,
+        expires_at=coupon_in.expires_at,
         is_active=True
     )
     db.add(coupon)

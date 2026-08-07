@@ -180,6 +180,9 @@ class Coupon(Base):
     discount_type = Column(String, default="percent")  # percent, fixed
     discount_value = Column(Float, nullable=False)
     min_order_amount = Column(Float, default=0.0)
+    max_uses = Column(Integer, nullable=True)
+    used_count = Column(Integer, default=0)
+    expires_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
 
 
